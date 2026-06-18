@@ -1,0 +1,17 @@
+{
+  "name": "charm-content-pipeline",
+  "version": "1.0.0",
+  "description": "Charm marketing content pipeline tracker — shared board, rolling weekly progress, full pipeline funnel",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "pg": "^8.11.5"
+  }
+}

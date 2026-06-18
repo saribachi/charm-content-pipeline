@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Charm Content Pipeline</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --purple:#8733ed; --purple-d:#6a1fc0; --purple-l:#f3ebff;
+    --magenta:#e0218a; --magenta-l:#ffe9f5;
+    --ink:#1a1525; --muted:#6b6577; --line:#e7e2f0;
+    --bg:#f7f5fb; --card:#ffffff;
+    --gtm:#8733ed; --cs:#e0218a; --vsl:#0d9488;
+    --ok:#16a34a; --warn:#d97706; --stuck:#dc2626;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Poppins',system-ui,sans-serif;background:var(--bg);color:var(--ink);font-size:14px;line-height:1.45}
+  .wrap{max-width:1500px;margin:0 auto;padding:22px 26px 80px}
+  header{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;flex-wrap:wrap;margin-bottom:18px}
+  h1{font-size:25px;font-weight:800;letter-spacing:-.4px}
+  h1 .dot{color:var(--purple)}
+  .sub{color:var(--muted);font-size:13px;margin-top:3px}
+  .hdr-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .sync{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:5px}
+  .sync .led{width:8px;height:8px;border-radius:99px;background:var(--ok)}
+  .sync.off .led{background:var(--stuck)}
+  button{font-family:inherit;cursor:pointer;border:none;border-radius:9px;font-weight:600;font-size:13px;padding:9px 14px;transition:.15s}
+  .btn{background:var(--purple);color:#fff}
+  .btn:hover{background:var(--purple-d)}
+  .btn-ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}
+  .btn-ghost:hover{border-color:var(--purple);color:var(--purple)}
+
+  .sprint{background:linear-gradient(100deg,var(--purple),#a855f7);color:#fff;border-radius:16px;padding:18px 22px;margin-bottom:18px;display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap}
+  .sprint h2{font-size:16px;font-weight:700;margin-bottom:4px}
+  .sprint p{font-size:13px;opacity:.92;max-width:620px}
+  .sprint-prog{text-align:right;min-width:170px}
+  .sprint-prog .big{font-size:30px;font-weight:800;line-height:1}
+  .sprint-prog .lbl{font-size:11px;text-transform:uppercase;letter-spacing:.6px;opacity:.85;margin-top:4px}
+  .bar{height:7px;border-radius:99px;background:rgba(255,255,255,.28);margin-top:8px;overflow:hidden}
+  .bar i{display:block;height:100%;background:#fff;border-radius:99px;transition:.4s}
+
+  .tabs{display:flex;gap:6px;margin-bottom:16px;border-bottom:2px solid var(--line);flex-wrap:wrap}
+  .tab{padding:10px 16px;font-weight:600;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-2px;cursor:pointer;border-radius:8px 8px 0 0}
+  .tab:hover{color:var(--ink)}
+  .tab.active{color:var(--purple);border-bottom-color:var(--purple);background:#fff}
+
+  .toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+  .toolbar .grp{display:flex;gap:5px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:10px;padding:5px 8px}
+  .toolbar label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:600}
+  .chip{padding:5px 11px;border-radius:99px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--line);background:#fff;color:var(--muted)}
+  .chip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .chip.gtm.on{background:var(--gtm);border-color:var(--gtm)}
+  .chip.cs.on{background:var(--cs);border-color:var(--cs)}
+  .chip.vsl.on{background:var(--vsl);border-color:var(--vsl)}
+  .spacer{flex:1}
+
+  .board{display:grid;grid-template-columns:repeat(7,minmax(190px,1fr));gap:12px;overflow-x:auto;padding-bottom:10px;align-items:start}
+  .col{background:#efeaf7;border-radius:13px;padding:10px;min-height:120px;display:flex;flex-direction:column;gap:9px}
+  .col.drag{outline:2px dashed var(--purple);outline-offset:-3px;background:var(--purple-l)}
+  .col-h{display:flex;justify-content:space-between;align-items:center;padding:2px 4px 4px}
+  .col-h .name{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+  .col-h .cnt{background:#fff;color:var(--muted);border-radius:99px;font-size:11px;font-weight:700;padding:1px 8px}
+  .col-h .owner{font-size:10px;color:var(--muted);font-weight:600}
+
+  .card{background:var(--card);border-radius:11px;padding:11px;box-shadow:0 1px 3px rgba(40,20,80,.07);border-left:4px solid var(--gtm);cursor:grab;position:relative}
+  .card:active{cursor:grabbing}
+  .card.cs{border-left-color:var(--cs)} .card.vsl{border-left-color:var(--vsl)}
+  .card .top{display:flex;justify-content:space-between;gap:6px;align-items:center;margin-bottom:5px}
+  .tag{font-size:9px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;padding:2px 6px;border-radius:5px;color:#fff;background:var(--gtm)}
+  .tag.cs{background:var(--cs)} .tag.vsl{background:var(--vsl)}
+  .card .ttl{font-size:13px;font-weight:700;line-height:1.25;margin-bottom:4px}
+  .card .hk{font-size:11.5px;color:var(--muted);line-height:1.35;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+  .card .ft{display:flex;justify-content:space-between;align-items:center;margin-top:8px;gap:6px}
+  .card .own{font-size:10px;font-weight:700;color:var(--purple);text-transform:uppercase;letter-spacing:.4px}
+  .card .own.leo{color:var(--magenta)} .card .own.sarah{color:#0d9488}
+  .perf-mini{font-size:10px;color:var(--muted);font-weight:600}
+  .flag{position:absolute;top:9px;right:9px;font-size:11px}
+  .stuckdot{position:absolute;top:9px;right:9px;width:8px;height:8px;border-radius:99px;background:var(--stuck)}
+  .vsl-pill{font-size:8px;font-weight:800;background:var(--vsl);color:#fff;padding:1px 5px;border-radius:4px;letter-spacing:.5px}
+
+  /* Weeks */
+  .metrics{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:16px}
+  .metric{background:#fff;border:1px solid var(--line);border-radius:13px;padding:14px 16px}
+  .metric .v{font-size:26px;font-weight:800;line-height:1}
+  .metric .k{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-top:5px;font-weight:600}
+  .metric .x{font-size:11px;color:var(--muted);margin-top:3px}
+  .funnel{background:#fff;border:1px solid var(--line);border-radius:13px;padding:16px 18px;margin-bottom:16px}
+  .funnel h3{font-size:13px;font-weight:700;margin-bottom:12px}
+  .funnel-row{display:flex;align-items:center;gap:10px;margin-bottom:7px}
+  .funnel-row .fl{width:90px;font-size:12px;font-weight:600;color:var(--muted)}
+  .funnel-row .ft{flex:1;height:20px;background:var(--bg);border-radius:6px;overflow:hidden}
+  .funnel-row .ft i{display:block;height:100%;background:linear-gradient(90deg,var(--purple),#a855f7);border-radius:6px}
+  .funnel-row .fn{width:30px;text-align:right;font-size:12px;font-weight:700}
+
+  .weeks{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(220px,1fr);gap:12px;overflow-x:auto;padding-bottom:12px;align-items:start}
+  .wk{background:#fff;border:1px solid var(--line);border-radius:13px;overflow:hidden}
+  .wk.now{border-color:var(--purple);box-shadow:0 0 0 2px var(--purple-l)}
+  .wk-h{padding:11px 13px;background:var(--purple-l)}
+  .wk-h .wn{font-size:13px;font-weight:700;color:var(--purple-d)}
+  .wk-h .wd{font-size:11px;color:var(--muted)}
+  .wk-h .nowtag{float:right;font-size:9px;font-weight:800;background:var(--purple);color:#fff;padding:2px 6px;border-radius:5px;letter-spacing:.5px}
+  .lane{padding:9px 11px;border-top:1px solid var(--line)}
+  .lane .lh{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);display:flex;justify-content:space-between;margin-bottom:6px}
+  .lane.shoot .lh{color:var(--purple)} .lane.due .lh{color:var(--warn)} .lane.live .lh{color:var(--ok)}
+  .mchip{font-size:11.5px;padding:5px 8px;border-radius:7px;margin-bottom:5px;background:var(--bg);border-left:3px solid var(--gtm);cursor:pointer;line-height:1.25}
+  .mchip.cs{border-left-color:var(--cs)} .mchip.vsl{border-left-color:var(--vsl)}
+  .mchip .mt{font-size:9px;font-weight:700;color:var(--muted)}
+  .lane .empty{font-size:11px;color:#bbb;font-style:italic}
+
+  .bank-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:16px}
+  .bank-cat{background:#fff;border:1px solid var(--line);border-radius:13px;overflow:hidden}
+  .bank-cat h3{font-size:13px;font-weight:700;padding:12px 14px;background:var(--purple-l);color:var(--purple-d);display:flex;justify-content:space-between}
+  .bank-cat h3 span{background:#fff;border-radius:99px;font-size:11px;padding:1px 8px}
+  .bank-item{display:flex;gap:9px;align-items:flex-start;padding:9px 14px;border-top:1px solid var(--line);font-size:12.5px;line-height:1.4}
+  .bank-item:hover{background:var(--bg)}
+  .bank-item .promote{flex-shrink:0;font-size:10px;font-weight:700;color:var(--purple);border:1px solid var(--line);border-radius:7px;padding:3px 7px;background:#fff;opacity:0;transition:.15s}
+  .bank-item:hover .promote{opacity:1}
+  .bank-item.done{opacity:.45;text-decoration:line-through}
+
+  .links-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px}
+  .link-card{display:block;text-decoration:none;color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px;border-left:5px solid var(--purple);transition:.15s}
+  .link-card:hover{box-shadow:0 6px 20px rgba(40,20,80,.1);transform:translateY(-2px)}
+  .link-card.sheet{border-left-color:#0f9d58}
+  .lc-top{display:flex;align-items:center;gap:9px;margin-bottom:11px}
+  .lc-ic{font-size:20px}
+  .lc-kind{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);background:var(--bg);padding:3px 8px;border-radius:6px}
+  .lc-ttl{font-size:16px;font-weight:700;margin-bottom:6px}
+  .lc-desc{font-size:12.5px;color:var(--muted);line-height:1.45;margin-bottom:12px}
+  .lc-go{font-size:12px;font-weight:700;color:var(--purple)}
+  .link-card.sheet .lc-go{color:#0f9d58}
+  .ref-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .ref-card{background:#fff;border:1px solid var(--line);border-radius:13px;padding:18px}
+  .ref-card h3{font-size:14px;font-weight:700;margin-bottom:12px;color:var(--purple-d)}
+  .cadence{display:flex;flex-direction:column;gap:10px}
+  .cad-row{display:flex;gap:12px;align-items:flex-start}
+  .cad-day{flex-shrink:0;width:120px;font-weight:700;font-size:12px;color:var(--purple)}
+  .cad-txt{font-size:12.5px}
+  .stage-flow{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:4px}
+  .stage-flow .s{background:var(--purple-l);color:var(--purple-d);font-weight:600;font-size:11.5px;padding:4px 9px;border-radius:7px}
+  .stage-flow .arr{color:var(--muted)}
+  .rules li{margin:7px 0 7px 18px;font-size:12.5px}
+  .codez{font-family:ui-monospace,monospace;background:#f3eefb;color:var(--purple-d);padding:1px 6px;border-radius:5px;font-size:11.5px}
+
+  .overlay{position:fixed;inset:0;background:rgba(26,21,37,.5);display:none;align-items:center;justify-content:center;z-index:50;padding:20px}
+  .overlay.show{display:flex}
+  .modal{background:#fff;border-radius:16px;width:560px;max-width:100%;max-height:90vh;overflow-y:auto;padding:24px}
+  .modal h3{font-size:18px;font-weight:700;margin-bottom:2px}
+  .modal .msub{color:var(--muted);font-size:12px;margin-bottom:16px}
+  .fld{margin-bottom:13px}
+  .fld label{display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:5px}
+  .fld input,.fld textarea,.fld select{width:100%;border:1px solid var(--line);border-radius:9px;padding:9px 11px;font-family:inherit;font-size:13px;color:var(--ink)}
+  .fld textarea{resize:vertical;min-height:64px}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+  .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:11px}
+  .modal-ft{display:flex;justify-content:space-between;gap:10px;margin-top:8px}
+  .modal-ft .right{display:flex;gap:8px}
+  .btn-danger{background:#fff;color:var(--stuck);border:1px solid var(--line)}
+  .btn-danger:hover{border-color:var(--stuck)}
+  .perf-box{background:var(--bg);border-radius:10px;padding:13px;margin-bottom:13px}
+  .perf-box .ph{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--vsl);margin-bottom:9px}
+  .hide{display:none!important}
+  footer{margin-top:30px;text-align:center;color:var(--muted);font-size:11px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Charm Content Pipeline<span class="dot">.</span></h1>
+      <div class="sub">One shared board for what's recording, what's with Leo, what's going live, and what's stuck.</div>
+    </div>
+    <div class="hdr-actions">
+      <span class="sync" id="sync"><span class="led"></span><span id="syncTxt">Synced</span></span>
+      <button class="btn-ghost" onclick="resetAll()">Reset</button>
+      <button class="btn" onclick="openNew()">+ New asset</button>
+    </div>
+  </header>
+
+  <div class="sprint">
+    <div>
+      <h2>Launch sprint &mdash; Chris records 8 ads + finalizes 2 VSLs</h2>
+      <p>Mon/Tue record &rarr; Wed share named files &rarr; Leo gets the first batch live by next Thursday. Cadence locks in from there.</p>
+    </div>
+    <div class="sprint-prog">
+      <div class="big" id="sprintPct">0%</div>
+      <div class="lbl"><span id="sprintDone">0</span>/<span id="sprintTot">10</span> past Planned</div>
+      <div class="bar"><i id="sprintBar" style="width:0%"></i></div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" data-tab="board" onclick="switchTab('board')">Pipeline board</div>
+    <div class="tab" data-tab="weeks" onclick="switchTab('weeks')">Rolling weeks</div>
+    <div class="tab" data-tab="bank" onclick="switchTab('bank')">Leo's idea bank</div>
+    <div class="tab" data-tab="links" onclick="switchTab('links')">Links &amp; docs</div>
+    <div class="tab" data-tab="ref" onclick="switchTab('ref')">Cadence &amp; rules</div>
+  </div>
+
+  <!-- BOARD -->
+  <section id="tab-board">
+    <div class="toolbar">
+      <div class="grp">
+        <label>Track</label>
+        <span class="chip gtm on" data-f="track" data-v="gtm" onclick="toggleF(this)">GTM</span>
+        <span class="chip cs on" data-f="track" data-v="cs" onclick="toggleF(this)">CS-Flex</span>
+        <span class="chip vsl on" data-f="track" data-v="vsl" onclick="toggleF(this)">VSL</span>
+      </div>
+      <div class="grp">
+        <label>Owner</label>
+        <span class="chip on" data-f="owner" data-v="chris" onclick="toggleF(this)">Chris</span>
+        <span class="chip on" data-f="owner" data-v="leo" onclick="toggleF(this)">Leo</span>
+        <span class="chip on" data-f="owner" data-v="sarah" onclick="toggleF(this)">Sarah</span>
+      </div>
+      <div class="spacer"></div>
+      <div class="grp" style="border:none;background:none"><span style="font-size:12px;color:var(--muted)">Drag cards between stages</span></div>
+    </div>
+    <div class="board" id="board"></div>
+  </section>
+
+  <!-- WEEKS -->
+  <section id="tab-weeks" class="hide">
+    <div class="metrics" id="metrics"></div>
+    <div class="funnel" id="funnel"></div>
+    <p style="color:var(--muted);font-size:12.5px;margin:0 0 10px">Each week shows what Chris is shooting, what's due live from the prior batch, and what actually went live. Current week is highlighted.</p>
+    <div class="weeks" id="weeks"></div>
+  </section>
+
+  <!-- BANK -->
+  <section id="tab-bank" class="hide">
+    <p style="color:var(--muted);font-size:13px;margin-bottom:14px;max-width:760px">
+      Leo's inbound / educational reservoir (organic, not paid ads). A bank to pull from, never a launch blocker. Hover any idea to <b>promote it into the pipeline</b>, or check it off once shipped.
+    </p>
+    <div class="bank-grid" id="bankGrid"></div>
+  </section>
+
+  <!-- LINKS -->
+  <section id="tab-links" class="hide">
+    <p style="color:var(--muted);font-size:13px;margin-bottom:14px;max-width:760px">
+      The working docs the team lives in. The board tracks status; these are where the writing and planning happen.
+    </p>
+    <div class="links-grid">
+      <a class="link-card doc" href="https://docs.google.com/document/d/1fbt3TR7hW2h0GoPt99KVThIqwnd8tQixI2VKFbEL190/edit?tab=t.fvx7pup62yei" target="_blank" rel="noopener">
+        <div class="lc-top"><span class="lc-ic">&#128221;</span><span class="lc-kind">Google Doc</span></div>
+        <div class="lc-ttl">VSL scripts &amp; notes</div>
+        <div class="lc-desc">Chris + Sarah's shared note-taking doc &mdash; VSL drafts, hook ideas, general working notes.</div>
+        <div class="lc-go">Open doc &rarr;</div>
+      </a>
+      <a class="link-card sheet" href="https://docs.google.com/spreadsheets/d/1Kic3p8Sxbtj_nXd6CeP9m0PCOqZzgGxo2djAKMXqH9M/edit?gid=0#gid=0" target="_blank" rel="noopener">
+        <div class="lc-top"><span class="lc-ic">&#128202;</span><span class="lc-kind">Google Sheet</span></div>
+        <div class="lc-ttl">Leo's ideas &amp; content calendar</div>
+        <div class="lc-desc">Leo's idea sheet &mdash; the inbound reservoir at source, and his own content calendar for the organic stream.</div>
+        <div class="lc-go">Open sheet &rarr;</div>
+      </a>
+    </div>
+    <p style="color:var(--muted);font-size:11.5px;margin-top:14px">Need another doc here? Tell Sarah and it gets added to this tab.</p>
+  </section>
+
+  <!-- REFERENCE -->
+  <section id="tab-ref" class="hide">
+    <div class="ref-grid">
+      <div class="ref-card">
+        <h3>The weekly cadence (core loop)</h3>
+        <div class="cadence">
+          <div class="cad-row"><div class="cad-day">Thursday</div><div class="cad-txt"><b>Leo sync.</b> Review last week's posted performance, lock next week's recording list, Leo flags needs.</div></div>
+          <div class="cad-row"><div class="cad-day">Mon / Tue</div><div class="cad-txt"><b>Chris records.</b> Films the week's concepts.</div></div>
+          <div class="cad-row"><div class="cad-day">Wednesday</div><div class="cad-txt"><b>Chris shares files.</b> Named, organized, handed to Leo.</div></div>
+          <div class="cad-row"><div class="cad-day">Following week</div><div class="cad-txt"><b>Leo edits, captions, schedules, posts</b> to Meta. ~1 week turnaround.</div></div>
+        </div>
+        <p style="margin-top:14px;font-size:12px;color:var(--muted)">2&ndash;3 batches always in flight: this week recording / last week editing / prior week posting.</p>
+      </div>
+      <div class="ref-card">
+        <h3>Pipeline stages</h3>
+        <div class="stage-flow">
+          <span class="s">Planned</span><span class="arr">&rarr;</span><span class="s">Recorded</span><span class="arr">&rarr;</span>
+          <span class="s">Shared</span><span class="arr">&rarr;</span><span class="s">In edit</span><span class="arr">&rarr;</span>
+          <span class="s">Scheduled</span><span class="arr">&rarr;</span><span class="s">Live</span><span class="arr">&rarr;</span><span class="s">Reviewed</span>
+        </div>
+        <p style="margin-top:12px;font-size:12.5px;color:var(--muted)">Perf check at a Thursday sync: <b>3-sec hold</b> first, <b>CTR</b> second, then CPL / CPA. Winning hooks feed the next planning cycle.</p>
+      </div>
+      <div class="ref-card">
+        <h3>Roles &amp; handoffs</h3>
+        <ul class="rules">
+          <li><b>Sarah</b> &mdash; owns the pipeline. Runs Thursday sync, keeps assets moving.</li>
+          <li><b>Chris</b> &mdash; records (Mon/Tue), shares raw files (Wed). On-camera + creative voice.</li>
+          <li><b>Leo</b> &mdash; edits, captions, schedules, posts. Owns most ongoing creative from the bank.</li>
+          <li>One clear owner per stage. No ambiguous handoffs.</li>
+          <li>File naming at Chris&rarr;Leo: <span class="codez">track-concept-##-YYYYMMDD</span> (track = gtm / cs / vsl).</li>
+          <li>"Recorded" isn't done until files are named + dropped in the agreed location.</li>
+        </ul>
+      </div>
+      <div class="ref-card">
+        <h3>Production specs &amp; testing</h3>
+        <ul class="rules">
+          <li>Vertical short-form for Meta, 15&ndash;30s, native / raw (phone-in-office &gt; studio).</li>
+          <li>Hook captioned on-screen in frame 1 (sound-off). One idea per ad.</li>
+          <li>CTA per track: CS = "free CS audit", GTM = "free outbound audit / book your read". The call is "the read".</li>
+          <li>One concept per ad set, multiple hook variants inside it. Isolate the variable &mdash; only the first 3 sec change.</li>
+          <li>Judge hooks on 3-sec hold rate first, CTR second.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <footer>Charm Content Pipeline &middot; shared live via the team URL &middot; built from charm-content-pipeline-master.md</footer>
+</div>
+
+<!-- MODAL -->
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <h3 id="mTitle">Asset</h3>
+    <div class="msub" id="mSub"></div>
+    <div class="fld"><label>Title</label><input id="mName" type="text"></div>
+    <div class="fld"><label>Hook / concept</label><textarea id="mHook"></textarea></div>
+    <div class="row3">
+      <div class="fld"><label>Track</label><select id="mTrack"><option value="gtm">GTM</option><option value="cs">CS-Flex</option><option value="vsl">VSL</option></select></div>
+      <div class="fld"><label>Stage</label><select id="mStage"></select></div>
+      <div class="fld"><label>Owner</label><select id="mOwner"><option value="chris">Chris</option><option value="leo">Leo</option><option value="sarah">Sarah</option></select></div>
+    </div>
+    <div class="row3">
+      <div class="fld"><label>Batch</label><input id="mBatch" type="text" placeholder="Sprint 1"></div>
+      <div class="fld"><label>Record week (Mon)</label><input id="mRecord" type="date"></div>
+      <div class="fld"><label>Live date</label><input id="mLive" type="date"></div>
+    </div>
+    <div class="fld"><label>File name</label><input id="mFile" type="text" placeholder="gtm-burned-01-20260615"></div>
+    <div class="fld"><label>Notes</label><textarea id="mNotes" placeholder="Hook variants, blockers, cleared brands, etc."></textarea></div>
+    <div class="perf-box">
+      <div class="ph">Performance (fill at Thursday review)</div>
+      <div class="row3">
+        <div class="fld" style="margin:0"><label>3-sec hold %</label><input id="mHold" type="text" placeholder="%"></div>
+        <div class="fld" style="margin:0"><label>CTR %</label><input id="mCtr" type="text" placeholder="%"></div>
+        <div class="fld" style="margin:0"><label>CPL / CPA</label><input id="mCpl" type="text" placeholder="$"></div>
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn-danger" id="mDelete" onclick="delCard()">Delete</button>
+      <div class="right">
+        <button class="btn-ghost" onclick="closeModal()">Cancel</button>
+        <button class="btn" onclick="saveCard()">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const STAGES=[
+  {id:'planned',name:'Planned',owner:'Chris / Sarah'},
+  {id:'recorded',name:'Recorded',owner:'Chris'},
+  {id:'shared',name:'Shared',owner:'Chris → Leo'},
+  {id:'edit',name:'In edit',owner:'Leo'},
+  {id:'scheduled',name:'Scheduled',owner:'Leo'},
+  {id:'live',name:'Live',owner:'Leo'},
+  {id:'reviewed',name:'Reviewed',owner:'Team'}
+];
+const STAGE_IDX={planned:0,recorded:1,shared:2,edit:3,scheduled:4,live:5,reviewed:6};
+const TRACK_LBL={gtm:'GTM',cs:'CS-Flex',vsl:'VSL'};
+const WEEK1='2026-06-15';       // Sprint 1 = week of Mon Jun 15 2026
+const N_WEEKS=8;
+
+const BANK={
+ 'Sales Systems / Tactical':['The subject line formula getting 40% open rates right now','Why your cold emails hit spam (and the 3-step fix)','How to personalize 1,000 emails/day without sounding like a robot','LinkedIn DM that gets 60% response rates (no pitch, just this)','Cold email that booked 12 meetings this week [breakdown]','The deliverability audit that saved our client $40K in wasted sends','The only cold email template you need (tested on 10K+ sends)','The 7-touch follow-up sequence that doesn’t feel desperate','We sent 50 prospects custom gifts, booked 18 meetings','How we QA 1,000 cold emails before hitting send','0 outbound to 40 meetings/month in only 2 weeks','The cold call script that actually books meetings without sounding like a robot','Lead reactivation: what to send when they’ve ignored 7 emails','The discovery call framework that qualifies or disqualifies in 15 minutes','Referral ask sequence: how to get intros from existing clients (exact copy)','The meeting confirmation sequence that cuts no-shows by 60%','Event outreach that doesn’t feel salesy (before, during, after playbook)'],
+ 'Sales Ops / Systems Build':['How to set up sales forecasting in HubSpot that’s actually accurate','The CRM hygiene checklist that prevents pipeline rot','Sales coaching system using conversational intelligence (Gong walkthrough)','New SDR onboarding: from hire to first meeting in 7 days','Sales attribution model: which channels actually close (not just book)','How to build an ICP scoring system that tells you who to target','The sales tech stack decision framework: when to add vs delete tools','Territory planning for SDRs: divide accounts without overlap','Sales comp plan that aligns rep behavior with company goals','How I built a 10K lead list in Clay for $0','This HubSpot dashboard predicts which leads will close','Clay workflow that finds 100 qualified leads in 10 minutes','Building a complete sales system in HubSpot [time-lapse]','Why your sales stack doesn’t integrate (and how to fix it)','Lead scoring model that predicted 80% of our closed deals','Sales enablement setup: 10 to 50 meetings/week'],
+ 'Authority / POV':['What a $60K/month outbound operation actually looks like','We scaled to 100 clients with this sales process [breakdown]','Pipeline velocity: why it matters more than win rate','Sales problems are usually ops problems: here’s how to tell','Most SDRs are just expensive API calls (automate them)','Running outbound for 3 industries at once: the systems that make it possible','Solutions selling saved my agency when cold email died','The 5 outbound channels ranked by ROI (email isn’t #1)','Why selling cold email campaigns will kill your agency','How we use all 5 channels (email, LinkedIn, calls, events, gifting) at once','Reverse engineering competitor outreach','What the top 1% of cold emailers do differently (data analysis)','"I’m not a sales guy, I’m an engineer who builds sales machines"','How sales and service should work together (but nobody does it)','Inbound vs outbound vs hybrid: how to pick your GTM motion','Account-based selling vs spray-and-pray: when each works','Market timing: when to double down on outbound vs pull back'],
+ 'Client Results / Case Studies':['Sex toy brand: $0 to $200K in outbound revenue','Home services: 150 leads/month in a local market','The campaign that failed: $10K spent, 0 meetings (what went wrong)','Client firing us → rehiring 6 months later (what changed)','Q4 vs Q1: how outbound results change seasonally','E-commerce/DTC outbound (B2C tactics that work)','Time-to-first-meeting: 45 days → 12 days','Expansion revenue: existing client $50K → $200K','Before/after stack: 12 tools cut to 4 (ROI)','$0 to $50K/mo on cold email alone','$60K ad spend vs $250K pipeline: the exact system','Won the world cold email competition (Clay World Cup): what we did','2% reply rate → 18% in 30 days','Highline Fiber: $60K → $250K in 90 days','SaaS: 2 → 30 demos/week','40% reply rates [screen recording]','"You 10x’d our pipeline" — full story']
+};
+
+let cards=[], bankDone={}, filters={track:['gtm','cs','vsl'],owner:['chris','leo','sarah']}, editing=null;
+
+/* ---- date helpers ---- */
+function parseISO(s){const [y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d);}
+function toISO(dt){return dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0');}
+function addDays(s,n){const d=parseISO(s);d.setDate(d.getDate()+n);return toISO(d);}
+function mondayOf(s){const d=parseISO(s);const wd=(d.getDay()+6)%7;d.setDate(d.getDate()-wd);return toISO(d);}
+function todayISO(){return toISO(new Date());}
+function fmtWk(s){const d=parseISO(s);return d.toLocaleDateString('en-US',{month:'short',day:'numeric'});}
+function daysBetween(a,b){return Math.round((parseISO(b)-parseISO(a))/86400000);}
+
+/* ---- API ---- */
+function setSync(ok,txt){const s=document.getElementById('sync');s.classList.toggle('off',!ok);document.getElementById('syncTxt').textContent=txt||(ok?'Synced':'Offline');}
+async function api(method,url,body){
+  try{
+    const r=await fetch(url,{method,headers:{'Content-Type':'application/json'},body:body?JSON.stringify(body):undefined});
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    setSync(true,'Synced');
+    return await r.json();
+  }catch(e){setSync(false,'Offline — retry');throw e;}
+}
+async function loadState(){
+  const s=await api('GET','/api/state');
+  cards=s.cards; bankDone=s.bankDone||{};
+  renderAll();
+}
+
+/* ---- tabs / filters ---- */
+function switchTab(t){
+  document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===t));
+  ['board','weeks','bank','links','ref'].forEach(id=>document.getElementById('tab-'+id).classList.toggle('hide',id!==t));
+  if(t==='weeks')renderWeeks();
+}
+function toggleF(el){
+  const f=el.dataset.f,v=el.dataset.v;el.classList.toggle('on');
+  const arr=filters[f];if(arr.includes(v))filters[f]=arr.filter(x=>x!==v);else arr.push(v);
+  renderBoard();
+}
+
+/* ---- board ---- */
+function isStuck(c){
+  if(c.stage==='reviewed'||c.stage==='live'||!c.updatedAt)return false;
+  return (Date.now()-new Date(c.updatedAt).getTime())>7*86400000;
+}
+function renderBoard(){
+  const board=document.getElementById('board');board.innerHTML='';
+  STAGES.forEach(st=>{
+    const list=cards.filter(c=>c.stage===st.id);
+    const visible=list.filter(c=>filters.track.includes(c.track)&&filters.owner.includes(c.owner));
+    const col=document.createElement('div');col.className='col';col.dataset.stage=st.id;
+    col.innerHTML=`<div class="col-h"><div><div class="name">${st.name}</div><div class="owner">${st.owner}</div></div><div class="cnt">${list.length}</div></div>`;
+    visible.forEach(c=>col.appendChild(cardEl(c)));
+    col.addEventListener('dragover',e=>{e.preventDefault();col.classList.add('drag');});
+    col.addEventListener('dragleave',()=>col.classList.remove('drag'));
+    col.addEventListener('drop',async e=>{
+      e.preventDefault();col.classList.remove('drag');
+      const id=e.dataTransfer.getData('id');const card=cards.find(x=>x.id===id);
+      if(card&&card.stage!==st.id){
+        const patch={stage:st.id};const owner=autoOwner(st.id);if(owner)patch.owner=owner;
+        Object.assign(card,patch);
+        if((st.id==='live'||st.id==='reviewed')&&!card.liveDate)card.liveDate=todayISO();
+        renderBoard();updateSprint();
+        const updated=await api('PUT','/api/cards/'+id,patch);Object.assign(card,updated);renderBoard();
+      }
+    });
+    board.appendChild(col);
+  });
+  updateSprint();
+}
+function autoOwner(stage){const m={recorded:'chris',shared:'chris',edit:'leo',scheduled:'leo',live:'leo',reviewed:'sarah'};return m[stage];}
+function cardEl(c){
+  const d=document.createElement('div');d.className='card '+c.track;d.draggable=true;
+  const ownClass=c.owner==='leo'?'leo':c.owner==='sarah'?'sarah':'';
+  const perf=(c.perf&&(c.perf.hold||c.perf.ctr))?`<span class="perf-mini">${c.perf.hold?('hold '+c.perf.hold):''}${c.perf.ctr?(' · ctr '+c.perf.ctr):''}</span>`:'';
+  let corner='';
+  if(c.notes&&c.notes.indexOf('⚠')>-1)corner='<span class="flag">⚠</span>';
+  else if(isStuck(c))corner='<span class="stuckdot" title="Not moved in 7+ days"></span>';
+  d.innerHTML=`<div class="top"><span class="tag ${c.track}">${TRACK_LBL[c.track]}</span>${c.type==='vsl'?'<span class="vsl-pill">VSL</span>':''}</div>${corner}
+    <div class="ttl">${esc(c.name)}</div><div class="hk">${esc(c.hook||'')}</div>
+    <div class="ft"><span class="own ${ownClass}">${c.owner}</span>${perf}</div>`;
+  d.addEventListener('dragstart',e=>e.dataTransfer.setData('id',c.id));
+  d.addEventListener('click',()=>openEdit(c.id));
+  return d;
+}
+function updateSprint(){
+  const sprint=cards.filter(c=>c.batch==='Sprint 1');
+  const total=sprint.length||10;
+  const done=sprint.filter(c=>c.stage!=='planned').length;
+  const pct=Math.round(done/total*100);
+  document.getElementById('sprintPct').textContent=pct+'%';
+  document.getElementById('sprintDone').textContent=done;
+  document.getElementById('sprintTot').textContent=total;
+  document.getElementById('sprintBar').style.width=pct+'%';
+}
+
+/* ---- weeks ---- */
+function expLiveWeek(c){return c.recordWeek?mondayOf(addDays(c.recordWeek,7)):null;}
+function renderWeeks(){
+  const nowWk=mondayOf(todayISO());
+  // metrics
+  const live=cards.filter(c=>c.liveDate);
+  const cyc=live.filter(c=>c.recordWeek).map(c=>daysBetween(c.recordWeek,c.liveDate));
+  const avgCyc=cyc.length?Math.round(cyc.reduce((a,b)=>a+b,0)/cyc.length):'—';
+  const total=cards.length;
+  const livePct=total?Math.round(live.length/total*100):0;
+  const stuck=cards.filter(isStuck).length;
+  // on-track: cards whose expected-live week has passed but aren't live yet
+  const overdue=cards.filter(c=>{const e=expLiveWeek(c);return e&&e<nowWk&&c.stage!=='live'&&c.stage!=='reviewed';}).length;
+  const thisWkLive=cards.filter(c=>c.liveDate&&mondayOf(c.liveDate)===nowWk).length;
+  document.getElementById('metrics').innerHTML=[
+    {v:live.length+'/'+total,k:'Total live',x:livePct+'% of pipeline'},
+    {v:thisWkLive,k:'Live this week',x:'posted since Mon'},
+    {v:avgCyc===''?'—':avgCyc,k:'Avg cycle (days)',x:'record → live'},
+    {v:overdue,k:'Overdue',x:'past due-live, not live',c:overdue?'var(--stuck)':''},
+    {v:stuck,k:'Stuck 7+ days',x:'no movement',c:stuck?'var(--warn)':''}
+  ].map(m=>`<div class="metric"><div class="v" style="${m.c?'color:'+m.c:''}">${m.v}</div><div class="k">${m.k}</div><div class="x">${m.x}</div></div>`).join('');
+  // funnel
+  const fc=STAGES.map(s=>cards.filter(c=>c.stage===s.id).length);
+  const mx=Math.max(1,...fc);
+  document.getElementById('funnel').innerHTML='<h3>Whole-pipeline funnel</h3>'+STAGES.map((s,i)=>
+    `<div class="funnel-row"><div class="fl">${s.name}</div><div class="ft"><i style="width:${fc[i]/mx*100}%"></i></div><div class="fn">${fc[i]}</div></div>`).join('');
+  // week columns
+  const wrap=document.getElementById('weeks');wrap.innerHTML='';
+  for(let i=0;i<N_WEEKS;i++){
+    const M=mondayOf(addDays(WEEK1,i*7));
+    const isNow=M===nowWk;
+    const shoot=cards.filter(c=>c.recordWeek===M&&STAGE_IDX[c.stage]<=2);
+    const due=cards.filter(c=>expLiveWeek(c)===M&&c.stage!=='live'&&c.stage!=='reviewed'&&STAGE_IDX[c.stage]>=2);
+    const liveW=cards.filter(c=>c.liveDate&&mondayOf(c.liveDate)===M);
+    const col=document.createElement('div');col.className='wk'+(isNow?' now':'');
+    col.innerHTML=`<div class="wk-h">${isNow?'<span class="nowtag">NOW</span>':''}<div class="wn">Week ${i+1}</div><div class="wd">${fmtWk(M)} – ${fmtWk(addDays(M,6))}</div></div>
+      ${lane('shoot','Recording (Chris)',shoot)}
+      ${lane('due','Due live (in prod)',due)}
+      ${lane('live','Went live',liveW)}`;
+    col.querySelectorAll('.mchip').forEach(ch=>ch.addEventListener('click',()=>openEdit(ch.dataset.id)));
+    wrap.appendChild(col);
+  }
+}
+function lane(cls,label,arr){
+  const body=arr.length?arr.map(c=>`<div class="mchip ${c.track}" data-id="${c.id}"><div class="mt">${TRACK_LBL[c.track]}${c.type==='vsl'?' · VSL':''}</div>${esc(c.name)}</div>`).join(''):'<div class="empty">—</div>';
+  return `<div class="lane ${cls}"><div class="lh"><span>${label}</span><span>${arr.length||''}</span></div>${body}</div>`;
+}
+
+/* ---- bank ---- */
+function renderBank(){
+  const g=document.getElementById('bankGrid');g.innerHTML='';
+  Object.keys(BANK).forEach(cat=>{
+    const items=BANK[cat];const box=document.createElement('div');box.className='bank-cat';
+    box.innerHTML=`<h3>${cat}<span>${items.length}</span></h3>`;
+    items.forEach((it,i)=>{
+      const key=cat+'::'+i;const row=document.createElement('div');row.className='bank-item'+(bankDone[key]?' done':'');
+      row.innerHTML=`<input type="checkbox" ${bankDone[key]?'checked':''} style="margin-top:2px"><div style="flex:1">${esc(it)}</div><button class="promote">Promote →</button>`;
+      row.querySelector('input').addEventListener('change',async e=>{
+        bankDone[key]=e.target.checked;row.classList.toggle('done',e.target.checked);
+        await api('PUT','/api/bank',{key,done:e.target.checked});
+      });
+      row.querySelector('.promote').addEventListener('click',()=>promote(it));
+      box.appendChild(row);
+    });
+    g.appendChild(box);
+  });
+}
+async function promote(text){
+  const card=await api('POST','/api/cards',{track:'gtm',type:'organic',stage:'planned',owner:'leo',batch:'Inbound',name:text,hook:'Promoted from Leo’s idea bank (inbound / organic).'});
+  cards.push(card);renderBoard();switchTab('board');
+}
+
+/* ---- modal ---- */
+function stageOptions(sel){return STAGES.map(s=>`<option value="${s.id}" ${s.id===sel?'selected':''}>${s.name}</option>`).join('');}
+function openEdit(id){
+  editing=id;const c=cards.find(x=>x.id===id);if(!c)return;
+  document.getElementById('mTitle').textContent='Edit asset';
+  document.getElementById('mSub').textContent=(c.batch||'')+(c.file?(' · '+c.file):'');
+  document.getElementById('mName').value=c.name||'';document.getElementById('mHook').value=c.hook||'';
+  document.getElementById('mTrack').value=c.track;document.getElementById('mStage').innerHTML=stageOptions(c.stage);
+  document.getElementById('mOwner').value=c.owner;document.getElementById('mBatch').value=c.batch||'';
+  document.getElementById('mRecord').value=c.recordWeek||'';document.getElementById('mLive').value=c.liveDate||'';
+  document.getElementById('mFile').value=c.file||'';document.getElementById('mNotes').value=c.notes||'';
+  document.getElementById('mHold').value=(c.perf&&c.perf.hold)||'';document.getElementById('mCtr').value=(c.perf&&c.perf.ctr)||'';document.getElementById('mCpl').value=(c.perf&&c.perf.cpl)||'';
+  document.getElementById('mDelete').classList.remove('hide');document.getElementById('overlay').classList.add('show');
+}
+function openNew(){
+  editing=null;
+  document.getElementById('mTitle').textContent='New asset';document.getElementById('mSub').textContent='';
+  document.getElementById('mName').value='';document.getElementById('mHook').value='';
+  document.getElementById('mTrack').value='gtm';document.getElementById('mStage').innerHTML=stageOptions('planned');
+  document.getElementById('mOwner').value='chris';document.getElementById('mBatch').value='Sprint 1';
+  document.getElementById('mRecord').value=WEEK1;document.getElementById('mLive').value='';
+  document.getElementById('mFile').value='';document.getElementById('mNotes').value='';
+  document.getElementById('mHold').value='';document.getElementById('mCtr').value='';document.getElementById('mCpl').value='';
+  document.getElementById('mDelete').classList.add('hide');document.getElementById('overlay').classList.add('show');
+}
+async function saveCard(){
+  const data={
+    name:document.getElementById('mName').value.trim()||'Untitled',
+    hook:document.getElementById('mHook').value.trim(),
+    track:document.getElementById('mTrack').value,
+    stage:document.getElementById('mStage').value,
+    owner:document.getElementById('mOwner').value,
+    batch:document.getElementById('mBatch').value.trim(),
+    recordWeek:document.getElementById('mRecord').value||null,
+    liveDate:document.getElementById('mLive').value||null,
+    file:document.getElementById('mFile').value.trim(),
+    notes:document.getElementById('mNotes').value.trim(),
+    perf:{hold:document.getElementById('mHold').value.trim(),ctr:document.getElementById('mCtr').value.trim(),cpl:document.getElementById('mCpl').value.trim()}
+  };
+  if(editing){const updated=await api('PUT','/api/cards/'+editing,data);Object.assign(cards.find(x=>x.id===editing),updated);}
+  else{data.type=data.track==='vsl'?'vsl':'ad';const card=await api('POST','/api/cards',data);cards.push(card);}
+  renderAll();closeModal();
+}
+async function delCard(){
+  if(editing&&confirm('Delete this asset?')){await api('DELETE','/api/cards/'+editing);cards=cards.filter(x=>x.id!==editing);renderAll();closeModal();}
+}
+function closeModal(){document.getElementById('overlay').classList.remove('show');editing=null;}
+document.getElementById('overlay').addEventListener('click',e=>{if(e.target.id==='overlay')closeModal();});
+
+async function resetAll(){
+  if(confirm('Reset board and idea bank to the original master-doc defaults for EVERYONE? This clears all shared changes.')){
+    await api('POST','/api/reset');await loadState();
+  }
+}
+
+function renderAll(){renderBoard();renderBank();if(!document.getElementById('tab-weeks').classList.contains('hide'))renderWeeks();}
+function esc(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+loadState().catch(()=>setSync(false,'Cannot reach server'));
+setInterval(()=>{if(document.getElementById('overlay').classList.contains('show'))return;loadState().catch(()=>{});},20000);
