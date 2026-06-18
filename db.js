@@ -132,6 +132,7 @@ export async function initDb() {
       batch       TEXT DEFAULT '',
       file        TEXT DEFAULT '',
       notes       TEXT DEFAULT '',
+      script      TEXT DEFAULT '',
       record_week DATE,
       live_date   DATE,
       perf_hold   TEXT DEFAULT '',
@@ -153,6 +154,9 @@ export async function initDb() {
       v TEXT
     );
   `);
+
+  // Migration: add script column to pre-existing deployments.
+  await pool.query(`ALTER TABLE cards ADD COLUMN IF NOT EXISTS script TEXT DEFAULT ''`);
 
   const seeded = await pool.query(`SELECT v FROM meta WHERE k = 'seeded'`);
   if (seeded.rowCount === 0) {

@@ -78,6 +78,7 @@
   .flag{position:absolute;top:9px;right:9px;font-size:11px}
   .stuckdot{position:absolute;top:9px;right:9px;width:8px;height:8px;border-radius:99px;background:var(--stuck)}
   .vsl-pill{font-size:8px;font-weight:800;background:var(--vsl);color:#fff;padding:1px 5px;border-radius:4px;letter-spacing:.5px}
+  .script-pill{font-size:8px;font-weight:800;background:#1a1525;color:#fff;padding:1px 5px;border-radius:4px;letter-spacing:.3px;white-space:nowrap}
 
   /* Weeks */
   .metrics{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:16px}
@@ -188,6 +189,7 @@
       <span class="sync" id="sync"><span class="led"></span><span id="syncTxt">Synced</span></span>
       <button class="btn-ghost" onclick="resetAll()">Reset</button>
       <button class="btn" onclick="openNew()">+ New asset</button>
+      <a class="btn-ghost" href="/logout" style="text-decoration:none;display:inline-flex;align-items:center">Log out</a>
     </div>
   </header>
 
@@ -342,6 +344,7 @@
     </div>
     <div class="fld"><label>File name</label><input id="mFile" type="text" placeholder="gtm-burned-01-20260615"></div>
     <div class="fld"><label>Notes</label><textarea id="mNotes" placeholder="Hook variants, blockers, cleared brands, etc."></textarea></div>
+    <div class="fld"><label>Script <span style="text-transform:none;font-weight:500;color:var(--purple)">— drop the full script here for Chris</span></label><textarea id="mScript" placeholder="Paste the full on-camera script / VO here. Chris reads from this." style="min-height:160px;font-size:13px;line-height:1.5"></textarea></div>
     <div class="perf-box">
       <div class="ph">Performance (fill at Thursday review)</div>
       <div class="row3">
@@ -452,7 +455,8 @@ function cardEl(c){
   let corner='';
   if(c.notes&&c.notes.indexOf('⚠')>-1)corner='<span class="flag">⚠</span>';
   else if(isStuck(c))corner='<span class="stuckdot" title="Not moved in 7+ days"></span>';
-  d.innerHTML=`<div class="top"><span class="tag ${c.track}">${TRACK_LBL[c.track]}</span>${c.type==='vsl'?'<span class="vsl-pill">VSL</span>':''}</div>${corner}
+  const scriptBadge=(c.script&&c.script.trim())?'<span class="script-pill" title="Script ready">📄 script</span>':'';
+  d.innerHTML=`<div class="top"><span class="tag ${c.track}">${TRACK_LBL[c.track]}</span><span style="display:flex;gap:4px;align-items:center">${scriptBadge}${c.type==='vsl'?'<span class="vsl-pill">VSL</span>':''}</span></div>${corner}
     <div class="ttl">${esc(c.name)}</div><div class="hk">${esc(c.hook||'')}</div>
     <div class="ft"><span class="own ${ownClass}">${c.owner}</span>${perf}</div>`;
   d.addEventListener('dragstart',e=>e.dataTransfer.setData('id',c.id));
@@ -586,6 +590,7 @@ function openEdit(id){
   document.getElementById('mOwner').value=c.owner;document.getElementById('mBatch').value=c.batch||'';
   document.getElementById('mRecord').value=c.recordWeek||'';document.getElementById('mLive').value=c.liveDate||'';
   document.getElementById('mFile').value=c.file||'';document.getElementById('mNotes').value=c.notes||'';
+  document.getElementById('mScript').value=c.script||'';
   document.getElementById('mHold').value=(c.perf&&c.perf.hold)||'';document.getElementById('mCtr').value=(c.perf&&c.perf.ctr)||'';document.getElementById('mCpl').value=(c.perf&&c.perf.cpl)||'';
   document.getElementById('mDelete').classList.remove('hide');document.getElementById('overlay').classList.add('show');
 }
@@ -597,6 +602,7 @@ function openNew(){
   document.getElementById('mOwner').value='chris';document.getElementById('mBatch').value='Sprint 1';
   document.getElementById('mRecord').value=WEEK1;document.getElementById('mLive').value='';
   document.getElementById('mFile').value='';document.getElementById('mNotes').value='';
+  document.getElementById('mScript').value='';
   document.getElementById('mHold').value='';document.getElementById('mCtr').value='';document.getElementById('mCpl').value='';
   document.getElementById('mDelete').classList.add('hide');document.getElementById('overlay').classList.add('show');
 }
@@ -612,6 +618,7 @@ async function saveCard(){
     liveDate:document.getElementById('mLive').value||null,
     file:document.getElementById('mFile').value.trim(),
     notes:document.getElementById('mNotes').value.trim(),
+    script:document.getElementById('mScript').value,
     perf:{hold:document.getElementById('mHold').value.trim(),ctr:document.getElementById('mCtr').value.trim(),cpl:document.getElementById('mCpl').value.trim()}
   };
   if(editing){const updated=await api('PUT','/api/cards/'+editing,data);Object.assign(cards.find(x=>x.id===editing),updated);}
