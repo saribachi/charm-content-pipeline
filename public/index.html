@@ -635,3 +635,6 @@ function esc(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replac
 
 loadState().catch(()=>setSync(false,'Cannot reach server'));
 setInterval(()=>{if(document.getElementById('overlay').classList.contains('show'))return;loadState().catch(()=>{});},20000);
+</script>
+</body>
+</html>
