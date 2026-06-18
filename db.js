@@ -15,6 +15,86 @@ export const pool = new Pool({
 // Sprint 1 anchors to the week of Monday June 15, 2026.
 const SPRINT1_WEEK = '2026-06-15';
 
+// Leo's inbound idea bank — seeded once, then editable/searchable in the UI.
+const BANK = {
+  'Sales Systems / Tactical': [
+    'The subject line formula getting 40% open rates right now',
+    'Why your cold emails hit spam (and the 3-step fix)',
+    'How to personalize 1,000 emails/day without sounding like a robot',
+    'LinkedIn DM that gets 60% response rates (no pitch, just this)',
+    'Cold email that booked 12 meetings this week [breakdown]',
+    'The deliverability audit that saved our client $40K in wasted sends',
+    'The only cold email template you need (tested on 10K+ sends)',
+    'The 7-touch follow-up sequence that doesn’t feel desperate',
+    'We sent 50 prospects custom gifts, booked 18 meetings',
+    'How we QA 1,000 cold emails before hitting send',
+    '0 outbound to 40 meetings/month in only 2 weeks',
+    'The cold call script that actually books meetings without sounding like a robot',
+    'Lead reactivation: what to send when they’ve ignored 7 emails',
+    'The discovery call framework that qualifies or disqualifies in 15 minutes',
+    'Referral ask sequence: how to get intros from existing clients (exact copy)',
+    'The meeting confirmation sequence that cuts no-shows by 60%',
+    'Event outreach that doesn’t feel salesy (before, during, after playbook)',
+  ],
+  'Sales Ops / Systems Build': [
+    'How to set up sales forecasting in HubSpot that’s actually accurate',
+    'The CRM hygiene checklist that prevents pipeline rot',
+    'Sales coaching system using conversational intelligence (Gong walkthrough)',
+    'New SDR onboarding: from hire to first meeting in 7 days',
+    'Sales attribution model: which channels actually close (not just book)',
+    'How to build an ICP scoring system that tells you who to target',
+    'The sales tech stack decision framework: when to add vs delete tools',
+    'Territory planning for SDRs: divide accounts without overlap',
+    'Sales comp plan that aligns rep behavior with company goals',
+    'How I built a 10K lead list in Clay for $0',
+    'This HubSpot dashboard predicts which leads will close',
+    'Clay workflow that finds 100 qualified leads in 10 minutes',
+    'Building a complete sales system in HubSpot [time-lapse]',
+    'Why your sales stack doesn’t integrate (and how to fix it)',
+    'Lead scoring model that predicted 80% of our closed deals',
+    'Sales enablement setup: 10 to 50 meetings/week',
+  ],
+  'Authority / POV': [
+    'What a $60K/month outbound operation actually looks like',
+    'We scaled to 100 clients with this sales process [breakdown]',
+    'Pipeline velocity: why it matters more than win rate',
+    'Sales problems are usually ops problems: here’s how to tell',
+    'Most SDRs are just expensive API calls (automate them)',
+    'Running outbound for 3 industries at once: the systems that make it possible',
+    'Solutions selling saved my agency when cold email died',
+    'The 5 outbound channels ranked by ROI (email isn’t #1)',
+    'Why selling cold email campaigns will kill your agency',
+    'How we use all 5 channels (email, LinkedIn, calls, events, gifting) at once',
+    'Reverse engineering competitor outreach',
+    'What the top 1% of cold emailers do differently (data analysis)',
+    '"I’m not a sales guy, I’m an engineer who builds sales machines"',
+    'How sales and service should work together (but nobody does it)',
+    'Inbound vs outbound vs hybrid: how to pick your GTM motion',
+    'Account-based selling vs spray-and-pray: when each works',
+    'Market timing: when to double down on outbound vs pull back',
+  ],
+  'Client Results / Case Studies': [
+    'Sex toy brand: $0 to $200K in outbound revenue',
+    'Home services: 150 leads/month in a local market',
+    'The campaign that failed: $10K spent, 0 meetings (what went wrong)',
+    'Client firing us → rehiring 6 months later (what changed)',
+    'Q4 vs Q1: how outbound results change seasonally',
+    'E-commerce/DTC outbound (B2C tactics that work)',
+    'Time-to-first-meeting: 45 days → 12 days',
+    'Expansion revenue: existing client $50K → $200K',
+    'Before/after stack: 12 tools cut to 4 (ROI)',
+    '$0 to $50K/mo on cold email alone',
+    '$60K ad spend vs $250K pipeline: the exact system',
+    'Won the world cold email competition (Clay World Cup): what we did',
+    '2% reply rate → 18% in 30 days',
+    'Highline Fiber: $60K → $250K in 90 days',
+    'SaaS: 2 → 30 demos/week',
+    '40% reply rates [screen recording]',
+    '"You 10x’d our pipeline" — full story',
+  ],
+};
+const BANK_CATEGORIES = Object.keys(BANK);
+
 const SEED = [
   ['g1', 'gtm', 'ad', 'Burned-before',
    'Open mid-wound on a specific failure. "You hired an SDR. $8K a month. Booked nothing in 60 days." Each false-solution bullet is its own hook. Pivot: that’s not how it has to go.', ''],
@@ -61,9 +141,12 @@ export async function initDb() {
       created_at  TIMESTAMPTZ DEFAULT now(),
       updated_at  TIMESTAMPTZ DEFAULT now()
     );
-    CREATE TABLE IF NOT EXISTS bank_done (
-      key  TEXT PRIMARY KEY,
-      done BOOLEAN DEFAULT TRUE
+    CREATE TABLE IF NOT EXISTS bank_items (
+      id       TEXT PRIMARY KEY,
+      category TEXT NOT NULL,
+      text     TEXT NOT NULL,
+      done     BOOLEAN DEFAULT FALSE,
+      position INTEGER DEFAULT 0
     );
     CREATE TABLE IF NOT EXISTS meta (
       k TEXT PRIMARY KEY,
@@ -76,6 +159,26 @@ export async function initDb() {
     await seedCards();
     await pool.query(`INSERT INTO meta (k, v) VALUES ('seeded', 'true')
                       ON CONFLICT (k) DO NOTHING`);
+  }
+
+  // Seed the idea bank independently so existing deploys also get populated.
+  const bankCount = await pool.query('SELECT COUNT(*)::int AS n FROM bank_items');
+  if (bankCount.rows[0].n === 0) await seedBank();
+}
+
+export const bankCategories = BANK_CATEGORIES;
+
+async function seedBank() {
+  let pos = 0;
+  for (const category of BANK_CATEGORIES) {
+    for (const text of BANK[category]) {
+      await pool.query(
+        `INSERT INTO bank_items (id, category, text, done, position)
+         VALUES ($1,$2,$3,FALSE,$4)`,
+        ['bk' + pos, category, text, pos]
+      );
+      pos++;
+    }
   }
 }
 
@@ -93,6 +196,7 @@ async function seedCards() {
 
 export async function resetToSeed() {
   await pool.query('DELETE FROM cards');
-  await pool.query('DELETE FROM bank_done');
+  await pool.query('DELETE FROM bank_items');
   await seedCards();
+  await seedBank();
 }

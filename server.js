@@ -1,7 +1,7 @@
 import express from 'express';
 import { fileURLToPath } from 'url';
 import path from 'path';
-import { pool, initDb, resetToSeed } from './db.js';
+import { pool, initDb, resetToSeed, bankCategories } from './db.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -29,10 +29,12 @@ const FIELDS = {
 app.get('/api/state', async (_req, res) => {
   try {
     const cards = await pool.query('SELECT * FROM cards ORDER BY position, created_at');
-    const bank = await pool.query('SELECT key FROM bank_done WHERE done = TRUE');
-    const bankDone = {};
-    bank.rows.forEach((b) => { bankDone[b.key] = true; });
-    res.json({ cards: cards.rows.map(rowToCard), bankDone });
+    const bank = await pool.query('SELECT id, category, text, done, position FROM bank_items ORDER BY position, id');
+    res.json({
+      cards: cards.rows.map(rowToCard),
+      bankItems: bank.rows,
+      bankCategories,
+    });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -87,16 +89,41 @@ app.delete('/api/cards/:id', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.put('/api/bank', async (req, res) => {
+app.post('/api/bank-items', async (req, res) => {
   try {
-    const { key, done } = req.body || {};
-    if (done) {
-      await pool.query(
-        `INSERT INTO bank_done (key, done) VALUES ($1, TRUE)
-         ON CONFLICT (key) DO UPDATE SET done = TRUE`, [key]);
-    } else {
-      await pool.query('DELETE FROM bank_done WHERE key = $1', [key]);
-    }
+    const { category, text } = req.body || {};
+    const id = 'b' + Date.now() + Math.floor(Math.random() * 1000);
+    const r = await pool.query(
+      `INSERT INTO bank_items (id, category, text, done, position)
+       VALUES ($1,$2,$3,FALSE,(SELECT COALESCE(MAX(position),0)+1 FROM bank_items))
+       RETURNING id, category, text, done, position`,
+      [id, category || 'Uncategorized', (text || '').trim() || 'New idea']
+    );
+    res.json(r.rows[0]);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.put('/api/bank-items/:id', async (req, res) => {
+  try {
+    const b = req.body || {};
+    const sets = [], vals = [];
+    let i = 1;
+    if ('text' in b)     { sets.push(`text = $${i++}`);     vals.push(b.text); }
+    if ('done' in b)     { sets.push(`done = $${i++}`);     vals.push(!!b.done); }
+    if ('category' in b) { sets.push(`category = $${i++}`); vals.push(b.category); }
+    if (!sets.length) return res.json({ ok: true });
+    vals.push(req.params.id);
+    const r = await pool.query(
+      `UPDATE bank_items SET ${sets.join(', ')} WHERE id = $${i}
+       RETURNING id, category, text, done, position`, vals);
+    if (r.rowCount === 0) return res.status(404).json({ error: 'not found' });
+    res.json(r.rows[0]);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete('/api/bank-items/:id', async (req, res) => {
+  try {
+    await pool.query('DELETE FROM bank_items WHERE id = $1', [req.params.id]);
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });

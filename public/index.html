@@ -108,15 +108,29 @@
   .mchip .mt{font-size:9px;font-weight:700;color:var(--muted)}
   .lane .empty{font-size:11px;color:#bbb;font-style:italic}
 
+  .bank-bar{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+  .bank-bar input{flex:1;max-width:420px;border:1px solid var(--line);border-radius:10px;padding:10px 14px;font-family:inherit;font-size:13px}
+  .bank-bar input:focus{outline:none;border-color:var(--purple)}
+  .bank-count{font-size:12px;color:var(--muted);font-weight:600}
   .bank-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:16px}
   .bank-cat{background:#fff;border:1px solid var(--line);border-radius:13px;overflow:hidden}
   .bank-cat h3{font-size:13px;font-weight:700;padding:12px 14px;background:var(--purple-l);color:var(--purple-d);display:flex;justify-content:space-between}
   .bank-cat h3 span{background:#fff;border-radius:99px;font-size:11px;padding:1px 8px}
   .bank-item{display:flex;gap:9px;align-items:flex-start;padding:9px 14px;border-top:1px solid var(--line);font-size:12.5px;line-height:1.4}
   .bank-item:hover{background:var(--bg)}
-  .bank-item .promote{flex-shrink:0;font-size:10px;font-weight:700;color:var(--purple);border:1px solid var(--line);border-radius:7px;padding:3px 7px;background:#fff;opacity:0;transition:.15s}
-  .bank-item:hover .promote{opacity:1}
-  .bank-item.done{opacity:.45;text-decoration:line-through}
+  .bank-item .txt{flex:1;cursor:text;border-radius:5px;padding:1px 3px;margin:-1px -3px}
+  .bank-item .txt:focus{outline:none;background:var(--purple-l);cursor:text}
+  .bank-item .acts{display:flex;gap:5px;flex-shrink:0;opacity:0;transition:.15s}
+  .bank-item:hover .acts,.bank-item:focus-within .acts{opacity:1}
+  .bank-item .acts button{font-size:10px;font-weight:700;border:1px solid var(--line);border-radius:7px;padding:3px 7px;background:#fff}
+  .bank-item .promote{color:var(--purple)}
+  .bank-item .del{color:var(--stuck)}
+  .bank-item.done .txt{opacity:.45;text-decoration:line-through}
+  .bank-add{display:flex;gap:7px;padding:9px 14px;border-top:1px dashed var(--line)}
+  .bank-add input{flex:1;border:1px solid var(--line);border-radius:7px;padding:6px 9px;font-family:inherit;font-size:12px}
+  .bank-add button{font-size:11px;font-weight:700;color:var(--purple);background:var(--purple-l);border:none;border-radius:7px;padding:6px 11px}
+  .bank-cat.hidden{display:none}
+  .bank-hl{background:#fff3a8;border-radius:3px}
 
   .links-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px}
   .link-card{display:block;text-decoration:none;color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px;border-left:5px solid var(--purple);transition:.15s}
@@ -228,9 +242,13 @@
 
   <!-- BANK -->
   <section id="tab-bank" class="hide">
-    <p style="color:var(--muted);font-size:13px;margin-bottom:14px;max-width:760px">
-      Leo's inbound / educational reservoir (organic, not paid ads). A bank to pull from, never a launch blocker. Hover any idea to <b>promote it into the pipeline</b>, or check it off once shipped.
+    <p style="color:var(--muted);font-size:13px;margin-bottom:12px;max-width:760px">
+      Leo's inbound / educational reservoir (organic, not paid ads). A bank to pull from, never a launch blocker. Click any idea to <b>edit it</b>, check it off once shipped, or hover to <b>promote it into the pipeline</b>. Edits save live for the whole team.
     </p>
+    <div class="bank-bar">
+      <input id="bankSearch" type="text" placeholder="Search ideas…" oninput="renderBank()">
+      <span class="bank-count" id="bankCount"></span>
+    </div>
     <div class="bank-grid" id="bankGrid"></div>
   </section>
 
@@ -357,14 +375,7 @@ const TRACK_LBL={gtm:'GTM',cs:'CS-Flex',vsl:'VSL'};
 const WEEK1='2026-06-15';       // Sprint 1 = week of Mon Jun 15 2026
 const N_WEEKS=8;
 
-const BANK={
- 'Sales Systems / Tactical':['The subject line formula getting 40% open rates right now','Why your cold emails hit spam (and the 3-step fix)','How to personalize 1,000 emails/day without sounding like a robot','LinkedIn DM that gets 60% response rates (no pitch, just this)','Cold email that booked 12 meetings this week [breakdown]','The deliverability audit that saved our client $40K in wasted sends','The only cold email template you need (tested on 10K+ sends)','The 7-touch follow-up sequence that doesn’t feel desperate','We sent 50 prospects custom gifts, booked 18 meetings','How we QA 1,000 cold emails before hitting send','0 outbound to 40 meetings/month in only 2 weeks','The cold call script that actually books meetings without sounding like a robot','Lead reactivation: what to send when they’ve ignored 7 emails','The discovery call framework that qualifies or disqualifies in 15 minutes','Referral ask sequence: how to get intros from existing clients (exact copy)','The meeting confirmation sequence that cuts no-shows by 60%','Event outreach that doesn’t feel salesy (before, during, after playbook)'],
- 'Sales Ops / Systems Build':['How to set up sales forecasting in HubSpot that’s actually accurate','The CRM hygiene checklist that prevents pipeline rot','Sales coaching system using conversational intelligence (Gong walkthrough)','New SDR onboarding: from hire to first meeting in 7 days','Sales attribution model: which channels actually close (not just book)','How to build an ICP scoring system that tells you who to target','The sales tech stack decision framework: when to add vs delete tools','Territory planning for SDRs: divide accounts without overlap','Sales comp plan that aligns rep behavior with company goals','How I built a 10K lead list in Clay for $0','This HubSpot dashboard predicts which leads will close','Clay workflow that finds 100 qualified leads in 10 minutes','Building a complete sales system in HubSpot [time-lapse]','Why your sales stack doesn’t integrate (and how to fix it)','Lead scoring model that predicted 80% of our closed deals','Sales enablement setup: 10 to 50 meetings/week'],
- 'Authority / POV':['What a $60K/month outbound operation actually looks like','We scaled to 100 clients with this sales process [breakdown]','Pipeline velocity: why it matters more than win rate','Sales problems are usually ops problems: here’s how to tell','Most SDRs are just expensive API calls (automate them)','Running outbound for 3 industries at once: the systems that make it possible','Solutions selling saved my agency when cold email died','The 5 outbound channels ranked by ROI (email isn’t #1)','Why selling cold email campaigns will kill your agency','How we use all 5 channels (email, LinkedIn, calls, events, gifting) at once','Reverse engineering competitor outreach','What the top 1% of cold emailers do differently (data analysis)','"I’m not a sales guy, I’m an engineer who builds sales machines"','How sales and service should work together (but nobody does it)','Inbound vs outbound vs hybrid: how to pick your GTM motion','Account-based selling vs spray-and-pray: when each works','Market timing: when to double down on outbound vs pull back'],
- 'Client Results / Case Studies':['Sex toy brand: $0 to $200K in outbound revenue','Home services: 150 leads/month in a local market','The campaign that failed: $10K spent, 0 meetings (what went wrong)','Client firing us → rehiring 6 months later (what changed)','Q4 vs Q1: how outbound results change seasonally','E-commerce/DTC outbound (B2C tactics that work)','Time-to-first-meeting: 45 days → 12 days','Expansion revenue: existing client $50K → $200K','Before/after stack: 12 tools cut to 4 (ROI)','$0 to $50K/mo on cold email alone','$60K ad spend vs $250K pipeline: the exact system','Won the world cold email competition (Clay World Cup): what we did','2% reply rate → 18% in 30 days','Highline Fiber: $60K → $250K in 90 days','SaaS: 2 → 30 demos/week','40% reply rates [screen recording]','"You 10x’d our pipeline" — full story']
-};
-
-let cards=[], bankDone={}, filters={track:['gtm','cs','vsl'],owner:['chris','leo','sarah']}, editing=null;
+let cards=[], bankItems=[], bankCategories=[], filters={track:['gtm','cs','vsl'],owner:['chris','leo','sarah']}, editing=null;
 
 /* ---- date helpers ---- */
 function parseISO(s){const [y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d);}
@@ -387,7 +398,7 @@ async function api(method,url,body){
 }
 async function loadState(){
   const s=await api('GET','/api/state');
-  cards=s.cards; bankDone=s.bankDone||{};
+  cards=s.cards; bankItems=s.bankItems||[]; bankCategories=s.bankCategories||[];
   renderAll();
 }
 
@@ -508,23 +519,56 @@ function lane(cls,label,arr){
 }
 
 /* ---- bank ---- */
+function bankHighlight(text,q){
+  const e=esc(text);if(!q)return e;
+  const idx=text.toLowerCase().indexOf(q);if(idx<0)return e;
+  return esc(text.slice(0,idx))+'<span class="bank-hl">'+esc(text.slice(idx,idx+q.length))+'</span>'+esc(text.slice(idx+q.length));
+}
 function renderBank(){
   const g=document.getElementById('bankGrid');g.innerHTML='';
-  Object.keys(BANK).forEach(cat=>{
-    const items=BANK[cat];const box=document.createElement('div');box.className='bank-cat';
-    box.innerHTML=`<h3>${cat}<span>${items.length}</span></h3>`;
-    items.forEach((it,i)=>{
-      const key=cat+'::'+i;const row=document.createElement('div');row.className='bank-item'+(bankDone[key]?' done':'');
-      row.innerHTML=`<input type="checkbox" ${bankDone[key]?'checked':''} style="margin-top:2px"><div style="flex:1">${esc(it)}</div><button class="promote">Promote →</button>`;
-      row.querySelector('input').addEventListener('change',async e=>{
-        bankDone[key]=e.target.checked;row.classList.toggle('done',e.target.checked);
-        await api('PUT','/api/bank',{key,done:e.target.checked});
+  const q=(document.getElementById('bankSearch').value||'').trim().toLowerCase();
+  const cats=bankCategories.length?bankCategories.slice():[...new Set(bankItems.map(b=>b.category))];
+  let shown=0;
+  cats.forEach(cat=>{
+    const all=bankItems.filter(b=>b.category===cat);
+    const items=q?all.filter(b=>b.text.toLowerCase().includes(q)):all;
+    const box=document.createElement('div');box.className='bank-cat'+(items.length?'':' hidden');
+    box.innerHTML=`<h3>${esc(cat)}<span>${items.length}${q?(' / '+all.length):''}</span></h3>`;
+    items.forEach(it=>{shown++;
+      const row=document.createElement('div');row.className='bank-item'+(it.done?' done':'');
+      const txt=document.createElement('div');txt.className='txt';txt.contentEditable='true';txt.spellcheck=false;
+      txt.innerHTML=bankHighlight(it.text,q);
+      txt.addEventListener('focus',()=>{txt.textContent=it.text;});
+      txt.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();txt.blur();}});
+      txt.addEventListener('blur',async()=>{
+        const nv=txt.textContent.trim();
+        if(nv&&nv!==it.text){it.text=nv;await api('PUT','/api/bank-items/'+it.id,{text:nv});}
+        txt.innerHTML=bankHighlight(it.text,q);
       });
-      row.querySelector('.promote').addEventListener('click',()=>promote(it));
-      box.appendChild(row);
+      const cb=document.createElement('input');cb.type='checkbox';cb.checked=!!it.done;cb.style.marginTop='3px';
+      cb.addEventListener('change',async()=>{it.done=cb.checked;row.classList.toggle('done',cb.checked);await api('PUT','/api/bank-items/'+it.id,{done:cb.checked});});
+      const acts=document.createElement('div');acts.className='acts';
+      acts.innerHTML='<button class="promote">Promote →</button><button class="del">✕</button>';
+      acts.querySelector('.promote').addEventListener('click',()=>promote(it.text));
+      acts.querySelector('.del').addEventListener('click',async()=>{
+        if(confirm('Delete this idea?')){await api('DELETE','/api/bank-items/'+it.id);bankItems=bankItems.filter(x=>x.id!==it.id);renderBank();}
+      });
+      row.appendChild(cb);row.appendChild(txt);row.appendChild(acts);box.appendChild(row);
     });
+    // add-idea row (hidden while searching to keep results clean)
+    if(!q){
+      const add=document.createElement('div');add.className='bank-add';
+      add.innerHTML=`<input type="text" placeholder="Add an idea to ${esc(cat)}…"><button>Add</button>`;
+      const inp=add.querySelector('input');
+      const go=async()=>{const v=inp.value.trim();if(!v)return;const item=await api('POST','/api/bank-items',{category:cat,text:v});bankItems.push(item);inp.value='';renderBank();};
+      add.querySelector('button').addEventListener('click',go);
+      inp.addEventListener('keydown',e=>{if(e.key==='Enter')go();});
+      box.appendChild(add);
+    }
     g.appendChild(box);
   });
+  const total=bankItems.length;
+  document.getElementById('bankCount').textContent=q?(shown+' of '+total+' match "'+q+'"'):(total+' ideas');
 }
 async function promote(text){
   const card=await api('POST','/api/cards',{track:'gtm',type:'organic',stage:'planned',owner:'leo',batch:'Inbound',name:text,hook:'Promoted from Leo’s idea bank (inbound / organic).'});
