@@ -62,6 +62,12 @@ deleted — plus a full reset) posts a notification to **#marketing-pipeline-upd
 A burst of edits/drags is coalesced into **one** digest message after a short
 window (`SLACK_DEBOUNCE_MS`, default 20s) so the channel never gets spammed.
 
+**Handoff to Leo:** when a card reaches the **Uploaded** stage (internal id
+`shared`), instead of the generic digest it sends a dedicated "ready to edit"
+message that **@-mentions Leo** (`LEO_SLACK_ID`, default his user id) and links
+the matching Drive folder (GTM or CS-Flex, by the card's track). A batch of
+uploads in one window coalesces into a single message that tags him once.
+
 To enable:
 
 1. In Slack, create an **Incoming Webhook** (https://api.slack.com/apps → your

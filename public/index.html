@@ -308,7 +308,7 @@
         <h3>Pipeline stages</h3>
         <div class="stage-flow">
           <span class="s">Planned</span><span class="arr">&rarr;</span><span class="s">Recorded</span><span class="arr">&rarr;</span>
-          <span class="s">Shared</span><span class="arr">&rarr;</span><span class="s">In edit</span><span class="arr">&rarr;</span>
+          <span class="s">Uploaded</span><span class="arr">&rarr;</span><span class="s">In edit</span><span class="arr">&rarr;</span>
           <span class="s">Scheduled</span><span class="arr">&rarr;</span><span class="s">Live</span><span class="arr">&rarr;</span><span class="s">Reviewed</span>
         </div>
         <p style="margin-top:12px;font-size:12.5px;color:var(--muted)">Perf check at a Thursday sync: <b>3-sec hold</b> first, <b>CTR</b> second, then CPL / CPA. Winning hooks feed the next planning cycle.</p>
@@ -382,7 +382,7 @@
 const STAGES=[
   {id:'planned',name:'Planned',owner:'Chris / Sarah'},
   {id:'recorded',name:'Recorded',owner:'Chris'},
-  {id:'shared',name:'Shared',owner:'Chris → Leo'},
+  {id:'shared',name:'Uploaded',owner:'Chris → Leo'},
   {id:'edit',name:'In edit',owner:'Leo'},
   {id:'scheduled',name:'Scheduled',owner:'Leo'},
   {id:'live',name:'Live',owner:'Leo'},

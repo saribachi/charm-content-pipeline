@@ -94,10 +94,28 @@ app.use(express.static(path.join(__dirname, 'public')));
 const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK_URL || '';
 const BOARD_URL = process.env.APP_URL || 'https://content.hirecharm.com';
 const SLACK_DEBOUNCE_MS = Number(process.env.SLACK_DEBOUNCE_MS || 20000);
-const STAGE_LABEL = { planned: 'Planned', recorded: 'Recorded', shared: 'Shared', edit: 'In edit', scheduled: 'Scheduled', live: 'Live', reviewed: 'Reviewed' };
+const STAGE_LABEL = { planned: 'Planned', recorded: 'Recorded', shared: 'Uploaded', edit: 'In edit', scheduled: 'Scheduled', live: 'Live', reviewed: 'Reviewed' };
 const TRACK_LABEL = { gtm: 'GTM', cs: 'CS-Flex', vsl: 'VSL' };
+// Leo's handoff: when a card reaches "Uploaded" he gets @-tagged with a link to the right Drive folder.
+const LEO_SLACK_ID = process.env.LEO_SLACK_ID || 'U09VDPB6WSJ'; // leogzd
+const DRIVE_FOLDERS = {
+  gtm: 'https://drive.google.com/drive/folders/11M9X1lf1sPPC9VyVxNjDbIeu8gG0Cx1z',
+  cs: 'https://drive.google.com/drive/folders/1X_jRhwO8vuDD91xxJUmVa0fU0f6ZG00t',
+};
 if (!SLACK_WEBHOOK) console.warn('⚠ SLACK_WEBHOOK_URL not set — board-update alerts are OFF.');
 
+async function postSlack(text) {
+  try {
+    const r = await fetch(SLACK_WEBHOOK, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text }),
+    });
+    if (!r.ok) console.warn('Slack HTTP', r.status);
+  } catch (e) { console.warn('Slack post failed:', e.message); }
+}
+
+// ---- general board-change digest ----
 let slackBuffer = [];
 let slackTimer = null;
 function notifyBoard(line) {
@@ -114,14 +132,33 @@ async function flushSlack() {
   const more = changes.length - shown.length;
   const head = `:clipboard: *Content pipeline updated* — ${changes.length} change${changes.length > 1 ? 's' : ''}`;
   const body = shown.map((l) => `• ${l}`).join('\n') + (more > 0 ? `\n• …and ${more} more` : '');
-  try {
-    const r = await fetch(SLACK_WEBHOOK, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: `${head}\n${body}\n<${BOARD_URL}|Open the board →>` }),
-    });
-    if (!r.ok) console.warn('Slack notify HTTP', r.status);
-  } catch (e) { console.warn('Slack notify failed:', e.message); }
+  await postSlack(`${head}\n${body}\n<${BOARD_URL}|Open the board →>`);
+}
+
+// ---- Leo handoff: card(s) moved to "Uploaded" → its own digest, tags Leo + Drive folder ----
+let handoffBuffer = [];
+let handoffTimer = null;
+function notifyHandoff(card) {
+  if (!SLACK_WEBHOOK || !card) return;
+  handoffBuffer.push(card); // { name, track }
+  if (!handoffTimer) handoffTimer = setTimeout(flushHandoff, SLACK_DEBOUNCE_MS);
+}
+async function flushHandoff() {
+  handoffTimer = null;
+  const items = handoffBuffer;
+  handoffBuffer = [];
+  if (!items.length) return;
+  const tag = LEO_SLACK_ID ? `<@${LEO_SLACK_ID}>` : '@Leo';
+  const lines = items.map((c) => {
+    const folder = DRIVE_FOLDERS[c.track];
+    const label = TRACK_LABEL[c.track] || (c.track || '').toUpperCase();
+    return folder
+      ? `• *${c.name}* — <${folder}|:file_folder: ${label} folder>`
+      : `• *${c.name}* (${label})`;
+  });
+  const n = items.length;
+  const head = `:inbox_tray: *${n} file${n > 1 ? 's' : ''} uploaded — ready to edit* ${tag}`;
+  await postSlack(`${head}\n${lines.join('\n')}\n<${BOARD_URL}|Open the board →>`);
 }
 
 const iso = (d) => (d ? new Date(d).toISOString().slice(0, 10) : null);
@@ -201,7 +238,12 @@ app.put('/api/cards/:id', async (req, res) => {
     const card = rowToCard(r.rows[0]);
     const old = prev.rows[0];
     if (old && card.stage !== old.stage) {
-      notifyBoard(`:twisted_rightwards_arrows: *${card.name}* moved: ${STAGE_LABEL[old.stage] || old.stage} → *${STAGE_LABEL[card.stage] || card.stage}*`);
+      if (card.stage === 'shared') {
+        // Reached "Uploaded" → Leo's handoff (tags him + Drive folder), not the generic digest.
+        notifyHandoff({ name: card.name, track: card.track });
+      } else {
+        notifyBoard(`:twisted_rightwards_arrows: *${card.name}* moved: ${STAGE_LABEL[old.stage] || old.stage} → *${STAGE_LABEL[card.stage] || card.stage}*`);
+      }
     } else if (old) {
       notifyBoard(`:pencil2: *${card.name}* updated`);
     }
