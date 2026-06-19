@@ -101,7 +101,21 @@ const LEO_SLACK_ID = process.env.LEO_SLACK_ID || 'U09VDPB6WSJ'; // leogzd
 const DRIVE_FOLDERS = {
   gtm: 'https://drive.google.com/drive/folders/11M9X1lf1sPPC9VyVxNjDbIeu8gG0Cx1z',
   cs: 'https://drive.google.com/drive/folders/1X_jRhwO8vuDD91xxJUmVa0fU0f6ZG00t',
+  vslGtm: 'https://drive.google.com/drive/folders/1uPbh6WnwMUHsU08553yPr07gngOmP-zZ', // VSL section inside the GTM folder
+  vslCs: 'https://drive.google.com/drive/folders/1MIA90_lWvqFXdDlvkXlizp0DxGGvG4GK', // VSL section inside the CS folder
 };
+// Resolve the Drive folder + label for a card. VSL cards (track 'vsl') split by name
+// into the GTM-VSL vs CS-VSL section (seeded names: "GTM VSL …" / "CS-Flex VSL").
+function folderFor(card) {
+  if (card.track === 'gtm') return { url: DRIVE_FOLDERS.gtm, label: 'GTM folder' };
+  if (card.track === 'cs') return { url: DRIVE_FOLDERS.cs, label: 'CS-Flex folder' };
+  if (card.track === 'vsl') {
+    return /\bcs\b|cs-?flex/i.test(card.name || '')
+      ? { url: DRIVE_FOLDERS.vslCs, label: 'CS VSL folder' }
+      : { url: DRIVE_FOLDERS.vslGtm, label: 'GTM VSL folder' };
+  }
+  return null;
+}
 if (!SLACK_WEBHOOK) console.warn('⚠ SLACK_WEBHOOK_URL not set — board-update alerts are OFF.');
 
 async function postSlack(text) {
@@ -150,11 +164,10 @@ async function flushHandoff() {
   if (!items.length) return;
   const tag = LEO_SLACK_ID ? `<@${LEO_SLACK_ID}>` : '@Leo';
   const lines = items.map((c) => {
-    const folder = DRIVE_FOLDERS[c.track];
-    const label = TRACK_LABEL[c.track] || (c.track || '').toUpperCase();
-    return folder
-      ? `• *${c.name}* — <${folder}|:file_folder: ${label} folder>`
-      : `• *${c.name}* (${label})`;
+    const f = folderFor(c);
+    return f
+      ? `• *${c.name}* — <${f.url}|:file_folder: ${f.label}>`
+      : `• *${c.name}* (${TRACK_LABEL[c.track] || (c.track || '').toUpperCase()})`;
   });
   const n = items.length;
   const head = `:inbox_tray: *${n} file${n > 1 ? 's' : ''} uploaded — ready to edit* ${tag}`;
