@@ -54,3 +54,20 @@ npm start                   # → http://localhost:3000
 
 To wipe back to the master-doc defaults later, hit the **Reset** button in the UI
 (or `POST /api/reset`). Note this clears everyone's shared changes.
+
+## Slack board-update alerts
+
+Any change to the pipeline (card created, moved between stages, edited, or
+deleted — plus a full reset) posts a notification to **#marketing-pipeline-updates**.
+A burst of edits/drags is coalesced into **one** digest message after a short
+window (`SLACK_DEBOUNCE_MS`, default 20s) so the channel never gets spammed.
+
+To enable:
+
+1. In Slack, create an **Incoming Webhook** (https://api.slack.com/apps → your
+   app → *Incoming Webhooks* → *Add New Webhook to Workspace*) and point it at
+   **#marketing-pipeline-updates**. Copy the `https://hooks.slack.com/services/…` URL.
+2. Set Coolify env `SLACK_WEBHOOK_URL` to that URL (optionally `APP_URL` and
+   `SLACK_DEBOUNCE_MS`) and redeploy.
+
+If `SLACK_WEBHOOK_URL` is unset the app runs normally with alerts off (logged on boot).

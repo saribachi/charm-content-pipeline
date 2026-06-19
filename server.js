@@ -88,6 +88,42 @@ app.use((req, res, next) => {
 
 app.use(express.static(path.join(__dirname, 'public')));
 
+// ---------- Slack board-update alerts (debounced digest) ----------
+// Set SLACK_WEBHOOK_URL (Slack Incoming Webhook) to enable. A burst of edits/drags
+// is coalesced into ONE message after SLACK_DEBOUNCE_MS so the channel isn't spammed.
+const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK_URL || '';
+const BOARD_URL = process.env.APP_URL || 'https://content.hirecharm.com';
+const SLACK_DEBOUNCE_MS = Number(process.env.SLACK_DEBOUNCE_MS || 20000);
+const STAGE_LABEL = { planned: 'Planned', recorded: 'Recorded', shared: 'Shared', edit: 'In edit', scheduled: 'Scheduled', live: 'Live', reviewed: 'Reviewed' };
+const TRACK_LABEL = { gtm: 'GTM', cs: 'CS-Flex', vsl: 'VSL' };
+if (!SLACK_WEBHOOK) console.warn('⚠ SLACK_WEBHOOK_URL not set — board-update alerts are OFF.');
+
+let slackBuffer = [];
+let slackTimer = null;
+function notifyBoard(line) {
+  if (!SLACK_WEBHOOK || !line) return;
+  slackBuffer.push(line);
+  if (!slackTimer) slackTimer = setTimeout(flushSlack, SLACK_DEBOUNCE_MS);
+}
+async function flushSlack() {
+  slackTimer = null;
+  const changes = slackBuffer;
+  slackBuffer = [];
+  if (!changes.length) return;
+  const shown = changes.slice(0, 15);
+  const more = changes.length - shown.length;
+  const head = `:clipboard: *Content pipeline updated* — ${changes.length} change${changes.length > 1 ? 's' : ''}`;
+  const body = shown.map((l) => `• ${l}`).join('\n') + (more > 0 ? `\n• …and ${more} more` : '');
+  try {
+    const r = await fetch(SLACK_WEBHOOK, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: `${head}\n${body}\n<${BOARD_URL}|Open the board →>` }),
+    });
+    if (!r.ok) console.warn('Slack notify HTTP', r.status);
+  } catch (e) { console.warn('Slack notify failed:', e.message); }
+}
+
 const iso = (d) => (d ? new Date(d).toISOString().slice(0, 10) : null);
 
 function rowToCard(r) {
@@ -133,13 +169,16 @@ app.post('/api/cards', async (req, res) => {
        b.owner || 'chris', b.batch || '', b.file || '', b.notes || '', b.script || '',
        b.recordWeek || null]
     );
-    res.json(rowToCard(r.rows[0]));
+    const card = rowToCard(r.rows[0]);
+    notifyBoard(`:heavy_plus_sign: New card created: *${card.name}* (${TRACK_LABEL[card.track] || card.track})`);
+    res.json(card);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 app.put('/api/cards/:id', async (req, res) => {
   try {
     const b = req.body || {};
+    const prev = await pool.query('SELECT name, stage FROM cards WHERE id = $1', [req.params.id]);
     const sets = [], vals = [];
     let i = 1;
     for (const [key, col] of Object.entries(FIELDS)) {
@@ -159,13 +198,22 @@ app.put('/api/cards/:id', async (req, res) => {
     const r = await pool.query(
       `UPDATE cards SET ${sets.join(', ')} WHERE id = $${i} RETURNING *`, vals);
     if (r.rowCount === 0) return res.status(404).json({ error: 'not found' });
-    res.json(rowToCard(r.rows[0]));
+    const card = rowToCard(r.rows[0]);
+    const old = prev.rows[0];
+    if (old && card.stage !== old.stage) {
+      notifyBoard(`:twisted_rightwards_arrows: *${card.name}* moved: ${STAGE_LABEL[old.stage] || old.stage} → *${STAGE_LABEL[card.stage] || card.stage}*`);
+    } else if (old) {
+      notifyBoard(`:pencil2: *${card.name}* updated`);
+    }
+    res.json(card);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 app.delete('/api/cards/:id', async (req, res) => {
   try {
+    const prev = await pool.query('SELECT name FROM cards WHERE id = $1', [req.params.id]);
     await pool.query('DELETE FROM cards WHERE id = $1', [req.params.id]);
+    if (prev.rowCount) notifyBoard(`:wastebasket: *${prev.rows[0].name}* deleted`);
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
