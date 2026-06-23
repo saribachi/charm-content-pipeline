@@ -183,22 +183,6 @@ function scriptPreview(s, n = 180) {
   return flat.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
-// Human-readable list of which card fields actually changed (for contextful alerts).
-// Compares two rowToCard()-shaped objects. Stage and script are handled separately.
-function changedFields(a, b) {
-  const norm = (v) => (v === null || v === undefined ? '' : String(v));
-  const out = [];
-  const simple = [
-    ['name', 'Name'], ['hook', 'Hook'], ['track', 'Track'], ['type', 'Type'],
-    ['owner', 'Owner'], ['batch', 'Batch'], ['file', 'File'], ['notes', 'Notes'],
-    ['recordWeek', 'Record week'], ['liveDate', 'Go-live date'],
-  ];
-  for (const [k, label] of simple) if (norm(a[k]) !== norm(b[k])) out.push(label);
-  const pa = a.perf || {}, pb = b.perf || {};
-  if (norm(pa.hold) !== norm(pb.hold) || norm(pa.ctr) !== norm(pb.ctr) || norm(pa.cpl) !== norm(pb.cpl)) out.push('Performance');
-  return out;
-}
-
 function rowToCard(r) {
   return {
     id: r.id, name: r.name, hook: r.hook, track: r.track, type: r.type,
@@ -206,14 +190,15 @@ function rowToCard(r) {
     script: r.script || '',
     recordWeek: iso(r.record_week), liveDate: iso(r.live_date),
     perf: { hold: r.perf_hold || '', ctr: r.perf_ctr || '', cpl: r.perf_cpl || '' },
-    position: r.position, createdAt: r.created_at, updatedAt: r.updated_at,
+    position: r.position, backlogged: !!r.backlogged,
+    createdAt: r.created_at, updatedAt: r.updated_at,
   };
 }
 
 const FIELDS = {
   name: 'name', hook: 'hook', track: 'track', type: 'type', stage: 'stage',
   owner: 'owner', batch: 'batch', file: 'file', notes: 'notes', script: 'script',
-  recordWeek: 'record_week', liveDate: 'live_date',
+  recordWeek: 'record_week', liveDate: 'live_date', backlogged: 'backlogged',
 };
 
 app.get('/api/state', async (_req, res) => {
@@ -280,16 +265,19 @@ app.put('/api/cards/:id', async (req, res) => {
       } else {
         notifyBoard(`:twisted_rightwards_arrows: *${card.name}* moved: ${STAGE_LABEL[before.stage] || before.stage} → *${STAGE_LABEL[card.stage] || card.stage}*`);
       }
+    } else if (before && !!before.backlogged !== !!card.backlogged) {
+      notifyBoard(card.backlogged
+        ? `:package: *${card.name}* parked to backlog`
+        : `:leftwards_arrow_with_hook: *${card.name}* restored to the board`);
     } else if (before) {
+      // Impactful-only: a new script, or a newly raised blocker. Minor field edits stay silent.
       const newScript = (card.script || '').trim();
       const oldScript = (before.script || '').trim();
-      if (newScript && newScript !== oldScript) {
-        const verb = oldScript ? 'Script updated' : 'Script added';
-        notifyBoard(`:page_facing_up: ${verb} on *${card.name}*\n> ${scriptPreview(card.script)}`);
-      } else {
-        // Only notify when we can say what changed; skip contextless pings.
-        const changed = changedFields(before, card);
-        if (changed.length) notifyBoard(`:pencil2: *${card.name}* updated: ${changed.join(', ')}`);
+      const blockerRaised = !(before.notes || '').includes('⚠') && (card.notes || '').includes('⚠');
+      if (newScript && !oldScript) {
+        notifyBoard(`:page_facing_up: Script added on *${card.name}*\n> ${scriptPreview(card.script)}`);
+      } else if (blockerRaised) {
+        notifyBoard(`:warning: Blocker flagged on *${card.name}*`);
       }
     }
     res.json(card);
@@ -298,10 +286,32 @@ app.put('/api/cards/:id', async (req, res) => {
 
 app.delete('/api/cards/:id', async (req, res) => {
   try {
-    const prev = await pool.query('SELECT name FROM cards WHERE id = $1', [req.params.id]);
+    // No Slack alert on delete (not an impactful pipeline update).
     await pool.query('DELETE FROM cards WHERE id = $1', [req.params.id]);
-    if (prev.rowCount) notifyBoard(`:wastebasket: *${prev.rows[0].name}* deleted`);
     res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Bulk park/restore, e.g. "backlog all CS planned". Body: {backlogged, track?, stage?}. One summary alert.
+app.post('/api/cards/bulk-backlog', async (req, res) => {
+  try {
+    const b = req.body || {};
+    const val = !!b.backlogged;
+    const where = ['backlogged = $1'], vals = [!val]; // only flip rows not already in target state
+    let i = 2;
+    if (b.track) { where.push(`track = $${i++}`); vals.push(b.track); }
+    if (b.stage) { where.push(`stage = $${i++}`); vals.push(b.stage); }
+    const r = await pool.query(
+      `UPDATE cards SET backlogged = ${val}, updated_at = now() WHERE ${where.join(' AND ')} RETURNING id`, vals);
+    const n = r.rowCount;
+    if (n) {
+      const scope = [b.track ? (TRACK_LABEL[b.track] || b.track) : '', b.stage ? (STAGE_LABEL[b.stage] || b.stage).toLowerCase() : '']
+        .filter(Boolean).join(' ');
+      notifyBoard(val
+        ? `:package: Parked ${n} card${n !== 1 ? 's' : ''} to backlog${scope ? ` (${scope})` : ''}`
+        : `:leftwards_arrow_with_hook: Restored ${n} card${n !== 1 ? 's' : ''} from backlog${scope ? ` (${scope})` : ''}`);
+    }
+    res.json({ count: n });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 

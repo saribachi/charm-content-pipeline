@@ -80,6 +80,20 @@
   .vsl-pill{font-size:8px;font-weight:800;background:var(--vsl);color:#fff;padding:1px 5px;border-radius:4px;letter-spacing:.5px}
   .script-pill{font-size:8px;font-weight:800;background:#1a1525;color:#fff;padding:1px 5px;border-radius:4px;letter-spacing:.3px;white-space:nowrap}
   .new-pill{font-size:8px;font-weight:800;background:#10b981;color:#fff;padding:1px 5px;border-radius:4px;letter-spacing:.5px;white-space:nowrap;box-shadow:0 0 0 2px rgba(16,185,129,.18)}
+  .backlog{margin-top:18px;border:1px dashed var(--line);border-radius:14px;background:var(--bg);padding:14px 16px}
+  .bk-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+  .bk-title{font-weight:800;font-size:14px;color:var(--ink)} .bk-title span{color:var(--muted)}
+  .bk-hint{font-size:11.5px;color:var(--muted)} .bk-head .spacer{flex:1}
+  .bk-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px}
+  .bk-card{background:#fff;border:1px solid var(--line);border-left:3px solid var(--gtm);border-radius:10px;padding:10px}
+  .bk-card.cs{border-left-color:var(--cs)} .bk-card.vsl{border-left-color:var(--vsl)}
+  .bk-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+  .bk-stage{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)}
+  .bk-name{font-size:13px;font-weight:600;color:var(--ink);line-height:1.3;margin-bottom:9px}
+  .bk-actions{display:flex;gap:6px}
+  .bk-restore,.bk-edit{font-size:11px;font-weight:700;border:none;border-radius:6px;padding:4px 9px;cursor:pointer}
+  .bk-restore{background:var(--purple);color:#fff} .bk-edit{background:#efeaf7;color:var(--purple)}
+  .bk-empty{font-size:12.5px;color:var(--muted);padding:6px 2px}
 
   /* Weeks */
   .metrics{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:16px}
@@ -232,10 +246,24 @@
         <span class="chip on" data-f="owner" data-v="leo" onclick="toggleF(this)">Leo</span>
         <span class="chip on" data-f="owner" data-v="sarah" onclick="toggleF(this)">Sarah</span>
       </div>
+      <div class="grp">
+        <label>Backlog</label>
+        <span class="chip" onclick="bulkBacklog('cs','planned',true)" title="Park all CS-Flex planned cards">Park CS planned</span>
+        <span class="chip" id="backlogToggle" onclick="toggleBacklog()">Backlog (0)</span>
+      </div>
       <div class="spacer"></div>
       <div class="grp" style="border:none;background:none"><span style="font-size:12px;color:var(--muted)">Drag cards between stages</span></div>
     </div>
     <div class="board" id="board"></div>
+    <div class="backlog hide" id="backlog">
+      <div class="bk-head">
+        <span class="bk-title">Backlog <span id="bkCount">0</span></span>
+        <span class="bk-hint">Parked work, set aside but fully preserved. Restore any time.</span>
+        <span class="spacer"></span>
+        <span class="chip" onclick="bulkBacklog(null,null,false)" title="Restore everything to the board">Restore all</span>
+      </div>
+      <div class="bk-grid" id="backlogGrid"></div>
+    </div>
   </section>
 
   <!-- WEEKS -->
@@ -371,6 +399,7 @@
     </div>
     <div class="modal-ft">
       <button class="btn-danger" id="mDelete" onclick="delCard()">Delete</button>
+      <button class="btn-ghost" id="mBacklog" onclick="backlogFromModal()">Move to backlog</button>
       <div class="right">
         <button class="btn-ghost" onclick="closeModal()">Cancel</button>
         <button class="btn" onclick="saveCard()">Save</button>
@@ -445,7 +474,7 @@ function isNew(c){
 function renderBoard(){
   const board=document.getElementById('board');board.innerHTML='';
   STAGES.forEach(st=>{
-    const list=cards.filter(c=>c.stage===st.id);
+    const list=cards.filter(c=>c.stage===st.id&&!c.backlogged);
     const visible=list.filter(c=>filters.track.includes(c.track)&&filters.owner.includes(c.owner));
     const col=document.createElement('div');col.className='col';col.dataset.stage=st.id;
     col.innerHTML=`<div class="col-h"><div><div class="name">${st.name}</div><div class="owner">${st.owner}</div></div><div class="cnt">${list.length}</div></div>`;
@@ -485,7 +514,7 @@ function cardEl(c){
   return d;
 }
 function updateSprint(){
-  const sprint=cards.filter(c=>c.batch==='Sprint 1');
+  const sprint=cards.filter(c=>c.batch==='Sprint 1'&&!c.backlogged);
   const total=sprint.length||10;
   const done=sprint.filter(c=>c.stage!=='planned').length;
   const pct=Math.round(done/total*100);
@@ -500,15 +529,16 @@ function expLiveWeek(c){return c.recordWeek?mondayOf(addDays(c.recordWeek,7)):nu
 function renderWeeks(){
   const nowWk=mondayOf(todayISO());
   // metrics
-  const live=cards.filter(c=>c.liveDate);
+  const wc=cards.filter(c=>!c.backlogged);
+  const live=wc.filter(c=>c.liveDate);
   const cyc=live.filter(c=>c.recordWeek).map(c=>daysBetween(c.recordWeek,c.liveDate));
   const avgCyc=cyc.length?Math.round(cyc.reduce((a,b)=>a+b,0)/cyc.length):'—';
-  const total=cards.length;
+  const total=wc.length;
   const livePct=total?Math.round(live.length/total*100):0;
-  const stuck=cards.filter(isStuck).length;
+  const stuck=wc.filter(isStuck).length;
   // on-track: cards whose expected-live week has passed but aren't live yet
-  const overdue=cards.filter(c=>{const e=expLiveWeek(c);return e&&e<nowWk&&c.stage!=='live'&&c.stage!=='reviewed';}).length;
-  const thisWkLive=cards.filter(c=>c.liveDate&&mondayOf(c.liveDate)===nowWk).length;
+  const overdue=wc.filter(c=>{const e=expLiveWeek(c);return e&&e<nowWk&&c.stage!=='live'&&c.stage!=='reviewed';}).length;
+  const thisWkLive=wc.filter(c=>c.liveDate&&mondayOf(c.liveDate)===nowWk).length;
   document.getElementById('metrics').innerHTML=[
     {v:live.length+'/'+total,k:'Total live',x:livePct+'% of pipeline'},
     {v:thisWkLive,k:'Live this week',x:'posted since Mon'},
@@ -517,7 +547,7 @@ function renderWeeks(){
     {v:stuck,k:'Stuck 7+ days',x:'no movement',c:stuck?'var(--warn)':''}
   ].map(m=>`<div class="metric"><div class="v" style="${m.c?'color:'+m.c:''}">${m.v}</div><div class="k">${m.k}</div><div class="x">${m.x}</div></div>`).join('');
   // funnel
-  const fc=STAGES.map(s=>cards.filter(c=>c.stage===s.id).length);
+  const fc=STAGES.map(s=>wc.filter(c=>c.stage===s.id).length);
   const mx=Math.max(1,...fc);
   document.getElementById('funnel').innerHTML='<h3>Whole-pipeline funnel</h3>'+STAGES.map((s,i)=>
     `<div class="funnel-row"><div class="fl">${s.name}</div><div class="ft"><i style="width:${fc[i]/mx*100}%"></i></div><div class="fn">${fc[i]}</div></div>`).join('');
@@ -526,9 +556,9 @@ function renderWeeks(){
   for(let i=0;i<N_WEEKS;i++){
     const M=mondayOf(addDays(WEEK1,i*7));
     const isNow=M===nowWk;
-    const shoot=cards.filter(c=>c.recordWeek===M&&STAGE_IDX[c.stage]<=2);
-    const due=cards.filter(c=>expLiveWeek(c)===M&&c.stage!=='live'&&c.stage!=='reviewed'&&STAGE_IDX[c.stage]>=2);
-    const liveW=cards.filter(c=>c.liveDate&&mondayOf(c.liveDate)===M);
+    const shoot=wc.filter(c=>c.recordWeek===M&&STAGE_IDX[c.stage]<=2);
+    const due=wc.filter(c=>expLiveWeek(c)===M&&c.stage!=='live'&&c.stage!=='reviewed'&&STAGE_IDX[c.stage]>=2);
+    const liveW=wc.filter(c=>c.liveDate&&mondayOf(c.liveDate)===M);
     const col=document.createElement('div');col.className='wk'+(isNow?' now':'');
     col.innerHTML=`<div class="wk-h">${isNow?'<span class="nowtag">NOW</span>':''}<div class="wn">Week ${i+1}</div><div class="wd">${fmtWk(M)} – ${fmtWk(addDays(M,6))}</div></div>
       ${lane('shoot','Recording (Chris)',shoot)}
@@ -613,7 +643,9 @@ function openEdit(id){
   document.getElementById('mFile').value=c.file||'';document.getElementById('mNotes').value=c.notes||'';
   document.getElementById('mScript').value=c.script||'';
   document.getElementById('mHold').value=(c.perf&&c.perf.hold)||'';document.getElementById('mCtr').value=(c.perf&&c.perf.ctr)||'';document.getElementById('mCpl').value=(c.perf&&c.perf.cpl)||'';
-  document.getElementById('mDelete').classList.remove('hide');document.getElementById('overlay').classList.add('show');
+  document.getElementById('mDelete').classList.remove('hide');
+  const mb=document.getElementById('mBacklog');mb.classList.remove('hide');mb.textContent=c.backlogged?'Restore to board':'Move to backlog';
+  document.getElementById('overlay').classList.add('show');
 }
 function openNew(){
   editing=null;
@@ -625,7 +657,7 @@ function openNew(){
   document.getElementById('mFile').value='';document.getElementById('mNotes').value='';
   document.getElementById('mScript').value='';
   document.getElementById('mHold').value='';document.getElementById('mCtr').value='';document.getElementById('mCpl').value='';
-  document.getElementById('mDelete').classList.add('hide');document.getElementById('overlay').classList.add('show');
+  document.getElementById('mDelete').classList.add('hide');document.getElementById('mBacklog').classList.add('hide');document.getElementById('overlay').classList.add('show');
 }
 async function saveCard(){
   const data={
@@ -658,7 +690,33 @@ async function resetAll(){
   }
 }
 
-function renderAll(){renderBoard();renderBank();if(!document.getElementById('tab-weeks').classList.contains('hide'))renderWeeks();}
+function renderAll(){renderBoard();renderBank();renderBacklog();if(!document.getElementById('tab-weeks').classList.contains('hide'))renderWeeks();}
+
+/* ---- backlog ---- */
+function stageName(id){const s=STAGES.find(x=>x.id===id);return s?s.name:id;}
+async function backlogCard(id,val){
+  await api('PUT','/api/cards/'+id,{backlogged:val});
+  const c=cards.find(x=>x.id===id);if(c)c.backlogged=val;
+  renderAll();
+}
+async function backlogFromModal(){
+  if(!editing)return;const c=cards.find(x=>x.id===editing);if(!c)return;
+  await backlogCard(editing,!c.backlogged);closeModal();
+}
+async function bulkBacklog(track,stage,val){
+  const body={backlogged:val};if(track)body.track=track;if(stage)body.stage=stage;
+  await api('POST','/api/cards/bulk-backlog',body);await loadState();
+  if(val){const d=document.getElementById('backlog');if(d&&d.classList.contains('hide'))toggleBacklog();}
+}
+function toggleBacklog(){const d=document.getElementById('backlog');if(d)d.classList.toggle('hide');}
+function renderBacklog(){
+  const parked=cards.filter(c=>c.backlogged);const n=parked.length;
+  const tog=document.getElementById('backlogToggle');if(tog)tog.textContent='Backlog ('+n+')';
+  const cnt=document.getElementById('bkCount');if(cnt)cnt.textContent=n;
+  const grid=document.getElementById('backlogGrid');if(!grid)return;
+  if(!n){grid.innerHTML='<div class="bk-empty">Nothing parked. Use “Park CS planned”, or open a card and choose “Move to backlog”.</div>';return;}
+  grid.innerHTML=parked.map(c=>`<div class="bk-card ${c.track}"><div class="bk-top"><span class="tag ${c.track}">${TRACK_LBL[c.track]}</span><span class="bk-stage">${stageName(c.stage)}</span></div><div class="bk-name">${esc(c.name)}</div><div class="bk-actions"><button class="bk-restore" onclick="backlogCard('${c.id}',false)">↩ Restore</button><button class="bk-edit" onclick="openEdit('${c.id}')">Open</button></div></div>`).join('');
+}
 function esc(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 
 loadState().catch(()=>setSync(false,'Cannot reach server'));
