@@ -176,6 +176,13 @@ async function flushHandoff() {
 
 const iso = (d) => (d ? new Date(d).toISOString().slice(0, 10) : null);
 
+// Short, Slack-safe one-line preview of a script for notifications.
+function scriptPreview(s, n = 180) {
+  let flat = String(s || '').replace(/\s+/g, ' ').trim();
+  if (flat.length > n) flat = flat.slice(0, n).trimEnd() + '…';
+  return flat.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
 function rowToCard(r) {
   return {
     id: r.id, name: r.name, hook: r.hook, track: r.track, type: r.type,
@@ -228,7 +235,7 @@ app.post('/api/cards', async (req, res) => {
 app.put('/api/cards/:id', async (req, res) => {
   try {
     const b = req.body || {};
-    const prev = await pool.query('SELECT name, stage FROM cards WHERE id = $1', [req.params.id]);
+    const prev = await pool.query('SELECT name, stage, script FROM cards WHERE id = $1', [req.params.id]);
     const sets = [], vals = [];
     let i = 1;
     for (const [key, col] of Object.entries(FIELDS)) {
@@ -258,7 +265,14 @@ app.put('/api/cards/:id', async (req, res) => {
         notifyBoard(`:twisted_rightwards_arrows: *${card.name}* moved: ${STAGE_LABEL[old.stage] || old.stage} → *${STAGE_LABEL[card.stage] || card.stage}*`);
       }
     } else if (old) {
-      notifyBoard(`:pencil2: *${card.name}* updated`);
+      const newScript = (card.script || '').trim();
+      const oldScript = (old.script || '').trim();
+      if (newScript && newScript !== oldScript) {
+        const verb = oldScript ? 'Script updated' : 'Script added';
+        notifyBoard(`:page_facing_up: ${verb} on *${card.name}*\n> ${scriptPreview(card.script)}`);
+      } else {
+        notifyBoard(`:pencil2: *${card.name}* updated`);
+      }
     }
     res.json(card);
   } catch (e) { res.status(500).json({ error: e.message }); }
