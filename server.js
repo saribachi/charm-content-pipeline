@@ -183,6 +183,22 @@ function scriptPreview(s, n = 180) {
   return flat.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
+// Human-readable list of which card fields actually changed (for contextful alerts).
+// Compares two rowToCard()-shaped objects. Stage and script are handled separately.
+function changedFields(a, b) {
+  const norm = (v) => (v === null || v === undefined ? '' : String(v));
+  const out = [];
+  const simple = [
+    ['name', 'Name'], ['hook', 'Hook'], ['track', 'Track'], ['type', 'Type'],
+    ['owner', 'Owner'], ['batch', 'Batch'], ['file', 'File'], ['notes', 'Notes'],
+    ['recordWeek', 'Record week'], ['liveDate', 'Go-live date'],
+  ];
+  for (const [k, label] of simple) if (norm(a[k]) !== norm(b[k])) out.push(label);
+  const pa = a.perf || {}, pb = b.perf || {};
+  if (norm(pa.hold) !== norm(pb.hold) || norm(pa.ctr) !== norm(pb.ctr) || norm(pa.cpl) !== norm(pb.cpl)) out.push('Performance');
+  return out;
+}
+
 function rowToCard(r) {
   return {
     id: r.id, name: r.name, hook: r.hook, track: r.track, type: r.type,
@@ -235,7 +251,7 @@ app.post('/api/cards', async (req, res) => {
 app.put('/api/cards/:id', async (req, res) => {
   try {
     const b = req.body || {};
-    const prev = await pool.query('SELECT name, stage, script FROM cards WHERE id = $1', [req.params.id]);
+    const prev = await pool.query('SELECT * FROM cards WHERE id = $1', [req.params.id]);
     const sets = [], vals = [];
     let i = 1;
     for (const [key, col] of Object.entries(FIELDS)) {
@@ -256,22 +272,24 @@ app.put('/api/cards/:id', async (req, res) => {
       `UPDATE cards SET ${sets.join(', ')} WHERE id = $${i} RETURNING *`, vals);
     if (r.rowCount === 0) return res.status(404).json({ error: 'not found' });
     const card = rowToCard(r.rows[0]);
-    const old = prev.rows[0];
-    if (old && card.stage !== old.stage) {
+    const before = prev.rows[0] ? rowToCard(prev.rows[0]) : null;
+    if (before && card.stage !== before.stage) {
       if (card.stage === 'shared') {
         // Reached "Uploaded" → Leo's handoff (tags him + Drive folder), not the generic digest.
         notifyHandoff({ name: card.name, track: card.track });
       } else {
-        notifyBoard(`:twisted_rightwards_arrows: *${card.name}* moved: ${STAGE_LABEL[old.stage] || old.stage} → *${STAGE_LABEL[card.stage] || card.stage}*`);
+        notifyBoard(`:twisted_rightwards_arrows: *${card.name}* moved: ${STAGE_LABEL[before.stage] || before.stage} → *${STAGE_LABEL[card.stage] || card.stage}*`);
       }
-    } else if (old) {
+    } else if (before) {
       const newScript = (card.script || '').trim();
-      const oldScript = (old.script || '').trim();
+      const oldScript = (before.script || '').trim();
       if (newScript && newScript !== oldScript) {
         const verb = oldScript ? 'Script updated' : 'Script added';
         notifyBoard(`:page_facing_up: ${verb} on *${card.name}*\n> ${scriptPreview(card.script)}`);
       } else {
-        notifyBoard(`:pencil2: *${card.name}* updated`);
+        // Only notify when we can say what changed; skip contextless pings.
+        const changed = changedFields(before, card);
+        if (changed.length) notifyBoard(`:pencil2: *${card.name}* updated: ${changed.join(', ')}`);
       }
     }
     res.json(card);
