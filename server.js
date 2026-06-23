@@ -183,7 +183,7 @@ function rowToCard(r) {
     script: r.script || '',
     recordWeek: iso(r.record_week), liveDate: iso(r.live_date),
     perf: { hold: r.perf_hold || '', ctr: r.perf_ctr || '', cpl: r.perf_cpl || '' },
-    position: r.position, updatedAt: r.updated_at,
+    position: r.position, createdAt: r.created_at, updatedAt: r.updated_at,
   };
 }
 
@@ -220,7 +220,7 @@ app.post('/api/cards', async (req, res) => {
        b.recordWeek || null]
     );
     const card = rowToCard(r.rows[0]);
-    notifyBoard(`:heavy_plus_sign: New card created: *${card.name}* (${TRACK_LABEL[card.track] || card.track})`);
+    notifyBoard(`:new: *New card added:* ${card.name} (${TRACK_LABEL[card.track] || card.track})`);
     res.json(card);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
