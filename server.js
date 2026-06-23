@@ -266,9 +266,7 @@ app.put('/api/cards/:id', async (req, res) => {
         notifyBoard(`:twisted_rightwards_arrows: *${card.name}* moved: ${STAGE_LABEL[before.stage] || before.stage} → *${STAGE_LABEL[card.stage] || card.stage}*`);
       }
     } else if (before && !!before.backlogged !== !!card.backlogged) {
-      notifyBoard(card.backlogged
-        ? `:package: *${card.name}* parked to backlog`
-        : `:leftwards_arrow_with_hook: *${card.name}* restored to the board`);
+      // Backlog park/restore is intentionally silent (no Slack alert).
     } else if (before) {
       // Impactful-only: a new script, or a newly raised blocker. Minor field edits stay silent.
       const newScript = (card.script || '').trim();
@@ -303,15 +301,8 @@ app.post('/api/cards/bulk-backlog', async (req, res) => {
     if (b.stage) { where.push(`stage = $${i++}`); vals.push(b.stage); }
     const r = await pool.query(
       `UPDATE cards SET backlogged = ${val}, updated_at = now() WHERE ${where.join(' AND ')} RETURNING id`, vals);
-    const n = r.rowCount;
-    if (n) {
-      const scope = [b.track ? (TRACK_LABEL[b.track] || b.track) : '', b.stage ? (STAGE_LABEL[b.stage] || b.stage).toLowerCase() : '']
-        .filter(Boolean).join(' ');
-      notifyBoard(val
-        ? `:package: Parked ${n} card${n !== 1 ? 's' : ''} to backlog${scope ? ` (${scope})` : ''}`
-        : `:leftwards_arrow_with_hook: Restored ${n} card${n !== 1 ? 's' : ''} from backlog${scope ? ` (${scope})` : ''}`);
-    }
-    res.json({ count: n });
+    // Backlog park/restore is intentionally silent (no Slack alert).
+    res.json({ count: r.rowCount });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
