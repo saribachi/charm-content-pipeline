@@ -66,6 +66,10 @@
   .card{background:var(--card);border-radius:11px;padding:11px;box-shadow:0 1px 3px rgba(40,20,80,.07);border-left:4px solid var(--gtm);cursor:grab;position:relative}
   .card:active{cursor:grabbing}
   .card.cs{border-left-color:var(--cs)} .card.vsl{border-left-color:var(--vsl)}
+  .card{touch-action:none;-webkit-user-select:none;user-select:none}
+  .card.dragging{opacity:.3}
+  .card-ghost{position:fixed;z-index:9999;margin:0;pointer-events:none;opacity:.96;box-shadow:0 16px 34px rgba(40,20,80,.3);transform:rotate(2deg)}
+  body.dragging-active,body.dragging-active *{cursor:grabbing!important}
   .card .top{display:flex;justify-content:space-between;gap:6px;align-items:center;margin-bottom:5px}
   .tag{font-size:9px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;padding:2px 6px;border-radius:5px;color:#fff;background:var(--gtm)}
   .tag.cs{background:var(--cs)} .tag.vsl{background:var(--vsl)}
@@ -479,26 +483,73 @@ function renderBoard(){
     const col=document.createElement('div');col.className='col';col.dataset.stage=st.id;
     col.innerHTML=`<div class="col-h"><div><div class="name">${st.name}</div><div class="owner">${st.owner}</div></div><div class="cnt">${list.length}</div></div>`;
     visible.forEach(c=>col.appendChild(cardEl(c)));
-    col.addEventListener('dragover',e=>{e.preventDefault();col.classList.add('drag');});
-    col.addEventListener('dragleave',()=>col.classList.remove('drag'));
-    col.addEventListener('drop',async e=>{
-      e.preventDefault();col.classList.remove('drag');
-      const id=e.dataTransfer.getData('id');const card=cards.find(x=>x.id===id);
-      if(card&&card.stage!==st.id){
-        const patch={stage:st.id};const owner=autoOwner(st.id);if(owner)patch.owner=owner;
-        Object.assign(card,patch);
-        if((st.id==='live'||st.id==='reviewed')&&!card.liveDate)card.liveDate=todayISO();
-        renderBoard();updateSprint();
-        const updated=await api('PUT','/api/cards/'+id,patch);Object.assign(card,updated);renderBoard();
-      }
-    });
     board.appendChild(col);
   });
   updateSprint();
 }
 function autoOwner(stage){const m={recorded:'chris',shared:'chris',edit:'leo',scheduled:'leo',live:'leo',reviewed:'sarah'};return m[stage];}
+/* ---- pointer drag (reliable on mouse + trackpad + touch; native HTML5 DnD was flaky) ---- */
+let drag=null;
+function startDrag(e,card,el){
+  if(e.button&&e.button!==0)return;            // primary button only
+  drag={card,el,x0:e.clientX,y0:e.clientY,moved:false,ghost:null,offx:0,offy:0};
+  document.addEventListener('pointermove',onDragMove);
+  document.addEventListener('pointerup',onDragUp);
+  document.addEventListener('pointercancel',onDragEnd);
+}
+function onDragMove(e){
+  if(!drag)return;
+  if(!drag.moved){
+    if(Math.hypot(e.clientX-drag.x0,e.clientY-drag.y0)<6)return; // movement threshold so taps still open the card
+    drag.moved=true;
+    const r=drag.el.getBoundingClientRect();
+    drag.offx=drag.x0-r.left;drag.offy=drag.y0-r.top;
+    const g=drag.el.cloneNode(true);g.classList.add('card-ghost');
+    g.style.width=r.width+'px';g.style.left=r.left+'px';g.style.top=r.top+'px';
+    document.body.appendChild(g);drag.ghost=g;
+    drag.el.classList.add('dragging');document.body.classList.add('dragging-active');
+  }
+  drag.ghost.style.left=(e.clientX-drag.offx)+'px';
+  drag.ghost.style.top=(e.clientY-drag.offy)+'px';
+  const col=colUnder(e.clientX,e.clientY);
+  document.querySelectorAll('.col.drag').forEach(c=>c.classList.remove('drag'));
+  if(col)col.classList.add('drag');
+}
+function colUnder(x,y){
+  if(drag&&drag.ghost)drag.ghost.style.visibility='hidden';
+  let el=document.elementFromPoint(x,y);
+  if(drag&&drag.ghost)drag.ghost.style.visibility='';
+  while(el&&!(el.classList&&el.classList.contains('col')))el=el.parentElement;
+  return el;
+}
+function cleanupDrag(){
+  document.removeEventListener('pointermove',onDragMove);
+  document.removeEventListener('pointerup',onDragUp);
+  document.removeEventListener('pointercancel',onDragEnd);
+  document.querySelectorAll('.col.drag').forEach(c=>c.classList.remove('drag'));
+  if(drag){if(drag.ghost)drag.ghost.remove();drag.el.classList.remove('dragging');}
+  document.body.classList.remove('dragging-active');
+}
+async function onDragUp(e){
+  if(!drag)return;const d=drag;
+  if(!d.moved){cleanupDrag();drag=null;openEdit(d.card.id);return;} // it was a click, not a drag
+  const col=colUnder(e.clientX,e.clientY);
+  cleanupDrag();drag=null;
+  if(col){
+    const stage=col.dataset.stage,card=d.card;
+    if(stage&&card.stage!==stage){
+      const patch={stage};const owner=autoOwner(stage);if(owner)patch.owner=owner;
+      Object.assign(card,patch);
+      if((stage==='live'||stage==='reviewed')&&!card.liveDate)card.liveDate=todayISO();
+      renderBoard();updateSprint();
+      try{const updated=await api('PUT','/api/cards/'+card.id,patch);Object.assign(card,updated);}catch(_){}
+      renderBoard();
+    }
+  }
+}
+function onDragEnd(){cleanupDrag();drag=null;}
 function cardEl(c){
-  const d=document.createElement('div');d.className='card '+c.track;d.draggable=true;
+  const d=document.createElement('div');d.className='card '+c.track;
   const ownClass=c.owner==='leo'?'leo':c.owner==='sarah'?'sarah':'';
   const perf=(c.perf&&(c.perf.hold||c.perf.ctr))?`<span class="perf-mini">${c.perf.hold?('hold '+c.perf.hold):''}${c.perf.ctr?(' · ctr '+c.perf.ctr):''}</span>`:'';
   let corner='';
@@ -509,8 +560,7 @@ function cardEl(c){
   d.innerHTML=`<div class="top"><span class="tag ${c.track}">${TRACK_LBL[c.track]}</span><span style="display:flex;gap:4px;align-items:center">${newBadge}${scriptBadge}${c.type==='vsl'?'<span class="vsl-pill">VSL</span>':''}</span></div>${corner}
     <div class="ttl">${esc(c.name)}</div><div class="hk">${esc(c.hook||'')}</div>
     <div class="ft"><span class="own ${ownClass}">${c.owner}</span>${perf}</div>`;
-  d.addEventListener('dragstart',e=>e.dataTransfer.setData('id',c.id));
-  d.addEventListener('click',()=>openEdit(c.id));
+  d.addEventListener('pointerdown',e=>startDrag(e,c,d));
   return d;
 }
 function updateSprint(){
