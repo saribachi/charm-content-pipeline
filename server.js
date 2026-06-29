@@ -252,9 +252,10 @@ app.put('/api/cards/:id', async (req, res) => {
     if (b.stage === 'live' || b.stage === 'reviewed') {
       sets.push(`live_date = COALESCE(live_date, CURRENT_DATE)`);
     }
-    // Start the In-Edit SLA countdown each time a card freshly enters the edit stage.
+    // Start the In-Edit SLA countdown each time a card freshly enters the edit stage (re-arm the reminder).
     if (b.stage === 'edit' && (!prev.rows[0] || prev.rows[0].stage !== 'edit')) {
       sets.push(`edit_started_at = now()`);
+      sets.push(`edit_reminded = FALSE`);
     }
     sets.push(`updated_at = now()`);
     vals.push(req.params.id);
@@ -355,7 +356,39 @@ app.post('/api/reset', async (_req, res) => {
   catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// Days + hours, e.g. "2d 6h" (or "6h" under a day).
+function fmtDurSrv(ms) {
+  const h = Math.floor(ms / 3600000), d = Math.floor(h / 24);
+  return d > 0 ? `${d}d ${h % 24}h` : `${h % 24}h`;
+}
+
+// Periodic check: when an In-Edit card crosses into its final 24h, tag Leo once.
+// Everything else about the timer is visible on the board; this keeps the channel low-noise.
+const SLA_MS = { vsl: 168 * 3600000, default: 72 * 3600000 };
+async function checkEditSlas() {
+  if (!SLACK_WEBHOOK) return;
+  try {
+    const r = await pool.query(
+      `SELECT * FROM cards WHERE stage='edit' AND backlogged=FALSE AND edit_started_at IS NOT NULL AND edit_reminded=FALSE`);
+    for (const row of r.rows) {
+      const card = rowToCard(row);
+      const slaMs = (card.type === 'vsl' || card.track === 'vsl') ? SLA_MS.vsl : SLA_MS.default;
+      const remaining = slaMs - (Date.now() - new Date(card.editStartedAt).getTime());
+      if (remaining <= 24 * 3600000) {
+        await pool.query(`UPDATE cards SET edit_reminded = TRUE WHERE id = $1`, [card.id]);
+        const tag = LEO_SLACK_ID ? `<@${LEO_SLACK_ID}>` : '@Leo';
+        const status = remaining > 0 ? `is due in *${fmtDurSrv(remaining)}*` : `is *past its edit deadline*`;
+        await postSlack(`:alarm_clock: ${tag} *${card.name}* ${status} (In Edit). <${BOARD_URL}|Open the board →>`);
+      }
+    }
+  } catch (e) { console.warn('edit-SLA check failed:', e.message); }
+}
+
 const PORT = process.env.PORT || 3000;
 initDb()
-  .then(() => app.listen(PORT, () => console.log(`Charm Content Pipeline on :${PORT}`)))
+  .then(() => {
+    app.listen(PORT, () => console.log(`Charm Content Pipeline on :${PORT}`));
+    setInterval(checkEditSlas, 15 * 60 * 1000); // every 15 min
+    setTimeout(checkEditSlas, 30 * 1000);       // and shortly after boot
+  })
   .catch((e) => { console.error('DB init failed:', e); process.exit(1); });

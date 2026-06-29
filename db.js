@@ -141,6 +141,7 @@ export async function initDb() {
       position    INTEGER DEFAULT 0,
       backlogged  BOOLEAN DEFAULT FALSE,
       edit_started_at TIMESTAMPTZ,
+      edit_reminded BOOLEAN DEFAULT FALSE,
       created_at  TIMESTAMPTZ DEFAULT now(),
       updated_at  TIMESTAMPTZ DEFAULT now()
     );
@@ -163,6 +164,8 @@ export async function initDb() {
   await pool.query(`ALTER TABLE cards ADD COLUMN IF NOT EXISTS backlogged BOOLEAN DEFAULT FALSE`);
   // Migration: add In-Edit SLA start timestamp (countdown timer).
   await pool.query(`ALTER TABLE cards ADD COLUMN IF NOT EXISTS edit_started_at TIMESTAMPTZ`);
+  // Migration: track whether the 24h-out edit reminder has been sent (once per edit session).
+  await pool.query(`ALTER TABLE cards ADD COLUMN IF NOT EXISTS edit_reminded BOOLEAN DEFAULT FALSE`);
 
   const seeded = await pool.query(`SELECT v FROM meta WHERE k = 'seeded'`);
   if (seeded.rowCount === 0) {
