@@ -150,7 +150,7 @@
   .bank-cat h3 span{background:#fff;border-radius:99px;font-size:11px;padding:1px 8px}
   .bank-item{display:flex;gap:9px;align-items:flex-start;padding:9px 14px;border-top:1px solid var(--line);font-size:12.5px;line-height:1.4}
   .bank-item:hover{background:var(--bg)}
-  .bank-item .txt{flex:1;cursor:text;border-radius:5px;padding:1px 3px;margin:-1px -3px}
+  .bank-item .txt{flex:1;min-width:0;overflow-wrap:anywhere;cursor:text;border-radius:5px;padding:1px 3px;margin:-1px -3px}
   .bank-item .txt:focus{outline:none;background:var(--purple-l);cursor:text}
   .bank-item .acts{display:flex;gap:5px;flex-shrink:0;opacity:0;transition:.15s}
   .bank-item:hover .acts,.bank-item:focus-within .acts{opacity:1}
@@ -159,7 +159,7 @@
   .bank-item .del{color:var(--stuck)}
   .bank-item.done .txt{opacity:.45;text-decoration:line-through}
   .bank-add{display:flex;gap:7px;padding:9px 14px;border-top:1px dashed var(--line)}
-  .bank-add input{flex:1;border:1px solid var(--line);border-radius:7px;padding:6px 9px;font-family:inherit;font-size:12px}
+  .bank-add input{flex:1;min-width:0;border:1px solid var(--line);border-radius:7px;padding:6px 9px;font-family:inherit;font-size:12px}
   .bank-add button{font-size:11px;font-weight:700;color:var(--purple);background:var(--purple-l);border:none;border-radius:7px;padding:6px 11px}
   .bank-cat.hidden{display:none}
   .bank-hl{background:#fff3a8;border-radius:3px}
