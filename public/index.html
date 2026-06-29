@@ -90,6 +90,12 @@
   .timer-y{background:#fdf3d8;color:var(--warn)}
   .timer-r{background:#fde8e8;color:var(--stuck)}
   .timer-o{background:var(--stuck);color:#fff}
+  .top-l{display:flex;gap:5px;align-items:center;min-width:0}
+  .ctype{font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;padding:2px 6px;border-radius:5px;color:#fff;white-space:nowrap}
+  .ct-instagram{background:linear-gradient(45deg,#e0218a,#8733ed)}
+  .ct-ad{background:#ea7317} .ct-vsl{background:var(--vsl)} .ct-youtube{background:#dc2626} .ct-other{background:#6b6577}
+  .ref-link{font-size:10px;font-weight:700;text-decoration:none;background:var(--purple-l);color:var(--purple);padding:1px 6px;border-radius:6px;margin-left:4px}
+  .ref-link:hover{filter:brightness(.96)}
   .backlog{margin-top:18px;border:1px dashed var(--line);border-radius:14px;background:var(--bg);padding:14px 16px}
   .bk-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
   .bk-title{font-weight:800;font-size:14px;color:var(--ink)} .bk-title span{color:var(--muted)}
@@ -251,6 +257,12 @@
         <span class="chip vsl on" data-f="track" data-v="vsl" onclick="toggleF(this)">VSL</span>
       </div>
       <div class="grp">
+        <label>Type</label>
+        <span class="chip on" data-f="ctype" data-v="Instagram" onclick="toggleF(this)">Instagram</span>
+        <span class="chip on" data-f="ctype" data-v="Ad" onclick="toggleF(this)">Ad</span>
+        <span class="chip on" data-f="ctype" data-v="VSL" onclick="toggleF(this)">VSL</span>
+      </div>
+      <div class="grp">
         <label>Owner</label>
         <span class="chip on" data-f="owner" data-v="chris" onclick="toggleF(this)">Chris</span>
         <span class="chip on" data-f="owner" data-v="leo" onclick="toggleF(this)">Leo</span>
@@ -392,6 +404,10 @@
       <div class="fld"><label>Owner</label><select id="mOwner"><option value="chris">Chris</option><option value="leo">Leo</option><option value="sarah">Sarah</option></select></div>
     </div>
     <div class="row3">
+      <div class="fld"><label>Content type</label><select id="mCtype"><option>Instagram</option><option>Ad</option><option>VSL</option><option>YouTube</option><option>Other</option></select></div>
+      <div class="fld" style="grid-column:span 2"><label>Reference / inspiration URL(s) <span style="text-transform:none;font-weight:500;color:var(--purple)">— posts that inspired this, for easy reference</span></label><input id="mRef" type="text" placeholder="https://www.instagram.com/p/…  (space or comma separated)"></div>
+    </div>
+    <div class="row3">
       <div class="fld"><label>Batch</label><input id="mBatch" type="text" placeholder="Sprint 1"></div>
       <div class="fld"><label>Record week (Mon)</label><input id="mRecord" type="date"></div>
       <div class="fld"><label>Live date</label><input id="mLive" type="date"></div>
@@ -433,7 +449,7 @@ const TRACK_LBL={gtm:'GTM',cs:'CS-Flex',vsl:'VSL'};
 const WEEK1='2026-06-15';       // Sprint 1 = week of Mon Jun 15 2026
 const N_WEEKS=8;
 
-let cards=[], bankItems=[], bankCategories=[], filters={track:['gtm','cs','vsl'],owner:['chris','leo','sarah']}, editing=null;
+let cards=[], bankItems=[], bankCategories=[], filters={track:['gtm','cs','vsl'],owner:['chris','leo','sarah'],ctype:['Instagram','Ad','VSL']}, editing=null;
 
 /* ---- date helpers ---- */
 function parseISO(s){const [y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d);}
@@ -491,11 +507,16 @@ function timerInfo(c){
   const cls=remaining>86400000?'timer-g':remaining>43200000?'timer-y':'timer-r'; // >24h green · 12-24h yellow · <12h red
   return {cls,label:fmtDur(remaining)+' left'};
 }
+function refLinks(c){ // clickable reference/inspiration links; stopPropagation so they don't start a drag or open the card
+  if(!c.referenceUrl)return '';
+  const urls=c.referenceUrl.split(/[\s,]+/).filter(u=>/^https?:\/\//i.test(u));
+  return urls.slice(0,3).map((u,i)=>`<a class="ref-link" href="${esc(u)}" target="_blank" rel="noopener" title="${esc(u)}" onpointerdown="event.stopPropagation()">🔗${urls.length>1?(i+1):''}</a>`).join('');
+}
 function renderBoard(){
   const board=document.getElementById('board');board.innerHTML='';
   STAGES.forEach(st=>{
     const list=cards.filter(c=>c.stage===st.id&&!c.backlogged);
-    const visible=list.filter(c=>filters.track.includes(c.track)&&filters.owner.includes(c.owner));
+    const visible=list.filter(c=>filters.track.includes(c.track)&&filters.owner.includes(c.owner)&&(!['Instagram','Ad','VSL'].includes(c.contentType)||filters.ctype.includes(c.contentType)));
     const col=document.createElement('div');col.className='col';col.dataset.stage=st.id;
     col.innerHTML=`<div class="col-h"><div><div class="name">${st.name}</div><div class="owner">${st.owner}</div></div><div class="cnt">${list.length}</div></div>`;
     visible.forEach(c=>col.appendChild(cardEl(c)));
@@ -573,10 +594,12 @@ function cardEl(c){
   else if(isStuck(c))corner='<span class="stuckdot" title="Not moved in 7+ days"></span>';
   const scriptBadge=(c.script&&c.script.trim())?'<span class="script-pill" title="Script ready">📄 script</span>':'';
   const newBadge=isNew(c)?'<span class="new-pill" title="Added in the last 24 hours">NEW</span>':'';
+  const ctype=c.contentType||'';const ctypeBadge=ctype?`<span class="ctype ct-${ctype.toLowerCase()}">${esc(ctype)}</span>`:'';
+  const refs=refLinks(c);
   const t=timerInfo(c);const timerEl=t?`<div class="timer ${t.cls}" title="In-Edit SLA: ${slaHours(c)}h">${t.label}</div>`:'';
-  d.innerHTML=`<div class="top"><span class="tag ${c.track}">${TRACK_LBL[c.track]}</span><span style="display:flex;gap:4px;align-items:center">${newBadge}${scriptBadge}${c.type==='vsl'?'<span class="vsl-pill">VSL</span>':''}</span></div>${corner}
+  d.innerHTML=`<div class="top"><span class="top-l"><span class="tag ${c.track}">${TRACK_LBL[c.track]}</span>${ctypeBadge}</span><span style="display:flex;gap:4px;align-items:center">${newBadge}${scriptBadge}${c.type==='vsl'?'<span class="vsl-pill">VSL</span>':''}</span></div>${corner}
     <div class="ttl">${esc(c.name)}</div><div class="hk">${esc(c.hook||'')}</div>${timerEl}
-    <div class="ft"><span class="own ${ownClass}">${c.owner}</span>${perf}</div>`;
+    <div class="ft"><span class="own ${ownClass}">${c.owner}</span>${refs}${perf}</div>`;
   d.addEventListener('pointerdown',e=>startDrag(e,c,d));
   return d;
 }
@@ -705,6 +728,7 @@ function openEdit(id){
   document.getElementById('mSub').textContent=(c.batch||'')+(c.file?(' · '+c.file):'');
   document.getElementById('mName').value=c.name||'';document.getElementById('mHook').value=c.hook||'';
   document.getElementById('mTrack').value=c.track;document.getElementById('mStage').innerHTML=stageOptions(c.stage);
+  document.getElementById('mCtype').value=c.contentType||'Instagram';document.getElementById('mRef').value=c.referenceUrl||'';
   document.getElementById('mOwner').value=c.owner;document.getElementById('mBatch').value=c.batch||'';
   document.getElementById('mRecord').value=c.recordWeek||'';document.getElementById('mLive').value=c.liveDate||'';
   document.getElementById('mFile').value=c.file||'';document.getElementById('mNotes').value=c.notes||'';
@@ -719,6 +743,7 @@ function openNew(){
   document.getElementById('mTitle').textContent='New asset';document.getElementById('mSub').textContent='';
   document.getElementById('mName').value='';document.getElementById('mHook').value='';
   document.getElementById('mTrack').value='gtm';document.getElementById('mStage').innerHTML=stageOptions('planned');
+  document.getElementById('mCtype').value='Instagram';document.getElementById('mRef').value='';
   document.getElementById('mOwner').value='chris';document.getElementById('mBatch').value='Sprint 1';
   document.getElementById('mRecord').value=WEEK1;document.getElementById('mLive').value='';
   document.getElementById('mFile').value='';document.getElementById('mNotes').value='';
@@ -732,6 +757,8 @@ async function saveCard(){
     hook:document.getElementById('mHook').value.trim(),
     track:document.getElementById('mTrack').value,
     stage:document.getElementById('mStage').value,
+    contentType:document.getElementById('mCtype').value,
+    referenceUrl:document.getElementById('mRef').value.trim(),
     owner:document.getElementById('mOwner').value,
     batch:document.getElementById('mBatch').value.trim(),
     recordWeek:document.getElementById('mRecord').value||null,

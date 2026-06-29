@@ -191,6 +191,7 @@ function rowToCard(r) {
     recordWeek: iso(r.record_week), liveDate: iso(r.live_date),
     perf: { hold: r.perf_hold || '', ctr: r.perf_ctr || '', cpl: r.perf_cpl || '' },
     position: r.position, backlogged: !!r.backlogged,
+    contentType: r.content_type, referenceUrl: r.reference_url,
     editStartedAt: r.edit_started_at,
     createdAt: r.created_at, updatedAt: r.updated_at,
   };
@@ -200,6 +201,7 @@ const FIELDS = {
   name: 'name', hook: 'hook', track: 'track', type: 'type', stage: 'stage',
   owner: 'owner', batch: 'batch', file: 'file', notes: 'notes', script: 'script',
   recordWeek: 'record_week', liveDate: 'live_date', backlogged: 'backlogged',
+  contentType: 'content_type', referenceUrl: 'reference_url',
 };
 
 app.get('/api/state', async (_req, res) => {
@@ -219,14 +221,14 @@ app.post('/api/cards', async (req, res) => {
     const b = req.body || {};
     const id = 'n' + Date.now() + Math.floor(Math.random() * 1000);
     const r = await pool.query(
-      `INSERT INTO cards (id, name, hook, track, type, stage, owner, batch, file, notes, script, record_week, position)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,
+      `INSERT INTO cards (id, name, hook, track, type, stage, owner, batch, file, notes, script, record_week, content_type, reference_url, position)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,
          (SELECT COALESCE(MAX(position),0)+1 FROM cards))
        RETURNING *`,
       [id, b.name || 'Untitled', b.hook || '', b.track || 'gtm',
        b.type || (b.track === 'vsl' ? 'vsl' : 'ad'), b.stage || 'planned',
        b.owner || 'chris', b.batch || '', b.file || '', b.notes || '', b.script || '',
-       b.recordWeek || null]
+       b.recordWeek || null, b.contentType || 'Instagram', b.referenceUrl || '']
     );
     const card = rowToCard(r.rows[0]);
     notifyBoard(`:new: *New card added:* ${card.name} (${TRACK_LABEL[card.track] || card.track})`);

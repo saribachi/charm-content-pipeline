@@ -142,6 +142,8 @@ export async function initDb() {
       backlogged  BOOLEAN DEFAULT FALSE,
       edit_started_at TIMESTAMPTZ,
       edit_reminded BOOLEAN DEFAULT FALSE,
+      content_type TEXT DEFAULT 'Instagram',
+      reference_url TEXT DEFAULT '',
       created_at  TIMESTAMPTZ DEFAULT now(),
       updated_at  TIMESTAMPTZ DEFAULT now()
     );
@@ -166,6 +168,9 @@ export async function initDb() {
   await pool.query(`ALTER TABLE cards ADD COLUMN IF NOT EXISTS edit_started_at TIMESTAMPTZ`);
   // Migration: track whether the 24h-out edit reminder has been sent (once per edit session).
   await pool.query(`ALTER TABLE cards ADD COLUMN IF NOT EXISTS edit_reminded BOOLEAN DEFAULT FALSE`);
+  // Migration: content type segmentation + reference/inspiration URL(s).
+  await pool.query(`ALTER TABLE cards ADD COLUMN IF NOT EXISTS content_type TEXT DEFAULT 'Instagram'`);
+  await pool.query(`ALTER TABLE cards ADD COLUMN IF NOT EXISTS reference_url TEXT DEFAULT ''`);
 
   const seeded = await pool.query(`SELECT v FROM meta WHERE k = 'seeded'`);
   if (seeded.rowCount === 0) {
