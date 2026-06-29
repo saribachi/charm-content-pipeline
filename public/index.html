@@ -84,6 +84,12 @@
   .vsl-pill{font-size:8px;font-weight:800;background:var(--vsl);color:#fff;padding:1px 5px;border-radius:4px;letter-spacing:.5px}
   .script-pill{font-size:8px;font-weight:800;background:#1a1525;color:#fff;padding:1px 5px;border-radius:4px;letter-spacing:.3px;white-space:nowrap}
   .new-pill{font-size:8px;font-weight:800;background:#10b981;color:#fff;padding:1px 5px;border-radius:4px;letter-spacing:.5px;white-space:nowrap;box-shadow:0 0 0 2px rgba(16,185,129,.18)}
+  .timer{display:inline-block;font-size:9.5px;font-weight:800;padding:2px 8px;border-radius:99px;margin-top:7px;letter-spacing:.2px}
+  .timer::before{content:"⏱ "}
+  .timer-g{background:#e7f7ee;color:var(--ok)}
+  .timer-y{background:#fdf3d8;color:var(--warn)}
+  .timer-r{background:#fde8e8;color:var(--stuck)}
+  .timer-o{background:var(--stuck);color:#fff}
   .backlog{margin-top:18px;border:1px dashed var(--line);border-radius:14px;background:var(--bg);padding:14px 16px}
   .bk-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
   .bk-title{font-weight:800;font-size:14px;color:var(--ink)} .bk-title span{color:var(--muted)}
@@ -475,6 +481,16 @@ function isNew(c){
   if(!c.createdAt)return false;
   return (Date.now()-new Date(c.createdAt).getTime())<86400000; // added within 24h
 }
+/* ---- In-Edit SLA countdown ---- */
+function slaHours(c){return (c.type==='vsl'||c.track==='vsl')?168:72;} // VSLs get 7 days, everything else 72h
+function fmtDur(ms){const m=Math.floor(ms/60000),h=Math.floor(m/60);return h+'h '+(m%60)+'m';}
+function timerInfo(c){
+  if(c.stage!=='edit'||!c.editStartedAt)return null;
+  const remaining=slaHours(c)*3600000-(Date.now()-new Date(c.editStartedAt).getTime());
+  if(remaining<0)return {cls:'timer-o',label:'OVERDUE by '+fmtDur(-remaining)};
+  const cls=remaining>86400000?'timer-g':remaining>43200000?'timer-y':'timer-r'; // >24h green · 12-24h yellow · <12h red
+  return {cls,label:fmtDur(remaining)+' left'};
+}
 function renderBoard(){
   const board=document.getElementById('board');board.innerHTML='';
   STAGES.forEach(st=>{
@@ -557,8 +573,9 @@ function cardEl(c){
   else if(isStuck(c))corner='<span class="stuckdot" title="Not moved in 7+ days"></span>';
   const scriptBadge=(c.script&&c.script.trim())?'<span class="script-pill" title="Script ready">📄 script</span>':'';
   const newBadge=isNew(c)?'<span class="new-pill" title="Added in the last 24 hours">NEW</span>':'';
+  const t=timerInfo(c);const timerEl=t?`<div class="timer ${t.cls}" title="In-Edit SLA: ${slaHours(c)}h">${t.label}</div>`:'';
   d.innerHTML=`<div class="top"><span class="tag ${c.track}">${TRACK_LBL[c.track]}</span><span style="display:flex;gap:4px;align-items:center">${newBadge}${scriptBadge}${c.type==='vsl'?'<span class="vsl-pill">VSL</span>':''}</span></div>${corner}
-    <div class="ttl">${esc(c.name)}</div><div class="hk">${esc(c.hook||'')}</div>
+    <div class="ttl">${esc(c.name)}</div><div class="hk">${esc(c.hook||'')}</div>${timerEl}
     <div class="ft"><span class="own ${ownClass}">${c.owner}</span>${perf}</div>`;
   d.addEventListener('pointerdown',e=>startDrag(e,c,d));
   return d;

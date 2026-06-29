@@ -191,6 +191,7 @@ function rowToCard(r) {
     recordWeek: iso(r.record_week), liveDate: iso(r.live_date),
     perf: { hold: r.perf_hold || '', ctr: r.perf_ctr || '', cpl: r.perf_cpl || '' },
     position: r.position, backlogged: !!r.backlogged,
+    editStartedAt: r.edit_started_at,
     createdAt: r.created_at, updatedAt: r.updated_at,
   };
 }
@@ -250,6 +251,10 @@ app.put('/api/cards/:id', async (req, res) => {
     // Auto-stamp live_date the first time a card lands on Live and has no date yet.
     if (b.stage === 'live' || b.stage === 'reviewed') {
       sets.push(`live_date = COALESCE(live_date, CURRENT_DATE)`);
+    }
+    // Start the In-Edit SLA countdown each time a card freshly enters the edit stage.
+    if (b.stage === 'edit' && (!prev.rows[0] || prev.rows[0].stage !== 'edit')) {
+      sets.push(`edit_started_at = now()`);
     }
     sets.push(`updated_at = now()`);
     vals.push(req.params.id);
