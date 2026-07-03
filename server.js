@@ -125,8 +125,9 @@ async function postSlack(text) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text }),
     });
-    if (!r.ok) console.warn('Slack HTTP', r.status);
-  } catch (e) { console.warn('Slack post failed:', e.message); }
+    if (!r.ok) { console.warn('Slack HTTP', r.status); return false; }
+    return true;
+  } catch (e) { console.warn('Slack post failed:', e.message); return false; }
 }
 
 // ---- general board-change digest ----
@@ -372,16 +373,23 @@ async function checkEditSlas() {
   try {
     const r = await pool.query(
       `SELECT * FROM cards WHERE stage='edit' AND backlogged=FALSE AND edit_started_at IS NOT NULL AND edit_reminded=FALSE`);
+    const due = [];
     for (const row of r.rows) {
       const card = rowToCard(row);
       const slaMs = (card.type === 'vsl' || card.track === 'vsl') ? SLA_MS.vsl : SLA_MS.default;
       const remaining = slaMs - (Date.now() - new Date(card.editStartedAt).getTime());
-      if (remaining <= 24 * 3600000) {
-        await pool.query(`UPDATE cards SET edit_reminded = TRUE WHERE id = $1`, [card.id]);
-        const tag = LEO_SLACK_ID ? `<@${LEO_SLACK_ID}>` : '@Leo';
-        const status = remaining > 0 ? `is due in *${fmtDurSrv(remaining)}*` : `is *past its edit deadline*`;
-        await postSlack(`:alarm_clock: ${tag} *${card.name}* ${status} (In Edit). <${BOARD_URL}|Open the board →>`);
-      }
+      if (remaining <= 24 * 3600000) due.push({ card, remaining });
+    }
+    if (!due.length) return;
+    // One coalesced message: tag Leo once, list every edit that's crossed the 24h mark.
+    const tag = LEO_SLACK_ID ? `<@${LEO_SLACK_ID}>` : '@Leo';
+    const lines = due.map(({ card, remaining }) => remaining > 0
+      ? `• *${card.name}* — due in ${fmtDurSrv(remaining)}`
+      : `• *${card.name}* — *overdue by ${fmtDurSrv(-remaining)}*`);
+    const head = `:alarm_clock: ${tag} — ${due.length} edit${due.length > 1 ? 's are' : ' is'} approaching the deadline:`;
+    const ok = await postSlack(`${head}\n${lines.join('\n')}\n<${BOARD_URL}|Open the board →>`);
+    if (ok) {
+      for (const { card } of due) await pool.query(`UPDATE cards SET edit_reminded = TRUE WHERE id = $1`, [card.id]);
     }
   } catch (e) { console.warn('edit-SLA check failed:', e.message); }
 }

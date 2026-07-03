@@ -171,6 +171,9 @@ export async function initDb() {
   // Migration: content type segmentation + reference/inspiration URL(s).
   await pool.query(`ALTER TABLE cards ADD COLUMN IF NOT EXISTS content_type TEXT DEFAULT 'Instagram'`);
   await pool.query(`ALTER TABLE cards ADD COLUMN IF NOT EXISTS reference_url TEXT DEFAULT ''`);
+  // Backfill: cards already sitting in "In edit" before the timer feature never got a start stamp
+  // (so their timer + SLA reminder were skipped). Start their clock now. Self-heals any future NULL too.
+  await pool.query(`UPDATE cards SET edit_started_at = now() WHERE stage = 'edit' AND edit_started_at IS NULL`);
 
   const seeded = await pool.query(`SELECT v FROM meta WHERE k = 'seeded'`);
   if (seeded.rowCount === 0) {
