@@ -210,6 +210,42 @@ export async function initDb() {
        VALUES ($1,$2,$3,$4) ON CONFLICT (content_type) DO NOTHING`, [ct, tc, per, own]);
   }
 
+  // ---- v2 Phase 2: sprints + capacity + deferrals + effort model ----
+  await pool.query(`CREATE TABLE IF NOT EXISTS sprints (
+    id SERIAL PRIMARY KEY, name TEXT NOT NULL,
+    starts_on DATE NOT NULL, ends_on DATE NOT NULL, status TEXT DEFAULT 'active'
+  )`);
+  await pool.query(`ALTER TABLE cards ADD COLUMN IF NOT EXISTS sprint_id INTEGER`);
+  await pool.query(`ALTER TABLE cadence_rules ADD COLUMN IF NOT EXISTS est_create_min  INTEGER DEFAULT 0`);
+  await pool.query(`ALTER TABLE cadence_rules ADD COLUMN IF NOT EXISTS est_publish_min INTEGER DEFAULT 0`);
+  await pool.query(`ALTER TABLE cadence_rules ADD COLUMN IF NOT EXISTS create_role  TEXT`);
+  await pool.query(`ALTER TABLE cadence_rules ADD COLUMN IF NOT EXISTS publish_role TEXT`);
+  await pool.query(`ALTER TABLE cadence_rules ADD COLUMN IF NOT EXISTS next_due_date DATE`);
+  await pool.query(`ALTER TABLE cadence_rules ADD COLUMN IF NOT EXISTS serialized BOOLEAN DEFAULT false`);
+  await pool.query(`CREATE TABLE IF NOT EXISTS capacity_budgets (person TEXT PRIMARY KEY, weekly_minutes INTEGER NOT NULL)`);
+  for (const [p, m] of [['chris', 240], ['leo', 480], ['sarah', 180]])
+    await pool.query(`INSERT INTO capacity_budgets (person, weekly_minutes) VALUES ($1,$2) ON CONFLICT (person) DO NOTHING`, [p, m]);
+  await pool.query(`CREATE TABLE IF NOT EXISTS deferrals (
+    id SERIAL PRIMARY KEY, content_type TEXT NOT NULL,
+    deferred_from DATE NOT NULL, deferred_to DATE NOT NULL, sprint_id INTEGER, created_at TIMESTAMPTZ DEFAULT now()
+  )`);
+  // Seed per-lane effort + roles (derivatives-first: chain-derived lanes cost 0 to create). Idempotent.
+  const effort = [
+    ['ad', 12, 'chris', 25, 'leo', false],
+    ['vsl', 90, 'chris', 120, 'leo', false],
+    ['video_organic', 30, 'leo', 30, 'leo', false],
+    ['linkedin_post', 0, 'chris', 10, 'sarah', false],       // chain derivative of recordings
+    ['newsletter_issue', 20, 'chris', 15, 'sarah', false],   // Claude drafts, Chris edits ~20m, Sarah sends
+    ['welcome_flow_email', 30, 'sarah', 10, 'sarah', false],
+    ['partner_asset', 45, 'sarah', 10, 'chris', false],
+    ['lead_magnet', 240, 'sarah', 30, 'sarah', true],        // serialized: one at a time
+    ['landing_page', 60, 'sarah', 10, 'sarah', false],
+  ];
+  for (const [ct, ec, cr, ep, pr, ser] of effort)
+    await pool.query(
+      `UPDATE cadence_rules SET est_create_min=$2, create_role=$3, est_publish_min=$4, publish_role=$5, serialized=$6
+       WHERE content_type=$1 AND create_role IS NULL`, [ct, ec, cr, ep, pr, ser]);
+
   const seeded = await pool.query(`SELECT v FROM meta WHERE k = 'seeded'`);
   if (seeded.rowCount === 0) {
     await seedCards();

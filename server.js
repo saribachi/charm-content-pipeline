@@ -193,7 +193,7 @@ function rowToCard(r) {
     perf: { hold: r.perf_hold || '', ctr: r.perf_ctr || '', cpl: r.perf_cpl || '' },
     position: r.position, backlogged: !!r.backlogged,
     contentType: r.content_type, referenceUrl: r.reference_url, funnelStage: r.funnel_stage,
-    editStartedAt: r.edit_started_at,
+    editStartedAt: r.edit_started_at, sprintId: r.sprint_id,
     createdAt: r.created_at, updatedAt: r.updated_at,
   };
 }
@@ -209,13 +209,55 @@ app.get('/api/state', async (_req, res) => {
   try {
     const cards = await pool.query('SELECT * FROM cards ORDER BY position, created_at');
     const bank = await pool.query('SELECT id, category, text, done, position FROM bank_items ORDER BY position, id');
-    const cadence = await pool.query('SELECT content_type, target_count, period, default_owner, active FROM cadence_rules ORDER BY id');
+    const cadence = await pool.query(`SELECT content_type, target_count, period, default_owner, active,
+      est_create_min, est_publish_min, create_role, publish_role, next_due_date, serialized FROM cadence_rules ORDER BY id`);
+    const sprint = await pool.query(`SELECT * FROM sprints WHERE status='active' ORDER BY starts_on DESC LIMIT 1`);
+    const capacity = await pool.query('SELECT person, weekly_minutes FROM capacity_budgets');
     res.json({
       cards: cards.rows.map(rowToCard),
       bankItems: bank.rows,
       bankCategories,
       cadenceRules: cadence.rows,
+      sprint: sprint.rows[0] || null,
+      capacity: capacity.rows,
     });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Update a person's weekly capacity budget (minutes).
+app.put('/api/capacity/:person', async (req, res) => {
+  try {
+    await pool.query(`INSERT INTO capacity_budgets (person, weekly_minutes) VALUES ($1,$2)
+      ON CONFLICT (person) DO UPDATE SET weekly_minutes=$2`, [req.params.person, Number(req.body.weekly_minutes) || 0]);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Create a sprint from the Composer: insert planned cards + log deferrals. One Slack summary.
+app.post('/api/sprints/create', async (req, res) => {
+  try {
+    const b = req.body || {};
+    const s = await pool.query(`INSERT INTO sprints (name, starts_on, ends_on) VALUES ($1,$2,$3) RETURNING *`,
+      [b.name || 'Sprint', b.starts_on, b.ends_on]);
+    const sprintId = s.rows[0].id;
+    const list = b.cards || [];
+    let n = 0;
+    for (const c of list) {
+      const id = 'sp' + sprintId + '_' + (n++);
+      await pool.query(
+        `INSERT INTO cards (id, name, hook, track, type, stage, owner, batch, content_type, funnel_stage, sprint_id, record_week, position)
+         VALUES ($1,$2,$3,$4,$5,'planned',$6,$7,$8,$9,$10,$11,(SELECT COALESCE(MAX(position),0)+1 FROM cards))`,
+        [id, c.name || 'Untitled', c.hook || '', c.track || 'gtm', c.type || 'ad', c.owner || 'chris',
+         b.name || '', c.contentType || 'video_organic', c.funnelStage || null, sprintId, b.starts_on || null]);
+    }
+    for (const d of (b.deferrals || [])) {
+      await pool.query(`INSERT INTO deferrals (content_type, deferred_from, deferred_to, sprint_id) VALUES ($1,$2,$3,$4)`,
+        [d.content_type, b.starts_on, d.deferred_to, sprintId]);
+      await pool.query(`UPDATE cadence_rules SET next_due_date=$2 WHERE content_type=$1`, [d.content_type, d.deferred_to]);
+    }
+    const nd = (b.deferrals || []).length;
+    notifyBoard(`:spiral_calendar_pad: *Sprint started: ${b.name || 'Sprint'}* — ${n} card${n !== 1 ? 's' : ''} planned${nd ? `, ${nd} deferred` : ''}. <${BOARD_URL}|Open the board →>`);
+    res.json({ ok: true, sprintId, created: n });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 

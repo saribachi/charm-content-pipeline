@@ -116,6 +116,28 @@
   .cov-owner{border:1px solid var(--line);border-radius:7px;padding:4px 8px;font-size:12px;font-family:inherit;background:#fff;color:var(--ink)}
   .cov-owner-none{background:var(--stuck);color:#fff;border-color:var(--stuck);font-weight:700}
   .cov-next.over{color:var(--stuck);font-weight:700}
+  .cov-actions{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+  .cov-sprint{margin-right:auto;font-size:12.5px;color:var(--muted);font-weight:600}
+  /* sprint composer */
+  .modal.comp{max-width:760px;max-height:88vh;overflow:auto}
+  .comp-cap{margin:16px 0 4px}
+  .cap-row{margin-bottom:9px}
+  .cap-lbl{display:flex;justify-content:space-between;font-size:12px;font-weight:700;color:var(--ink);margin-bottom:4px}
+  .cap-lbl span{color:var(--muted);font-weight:600}
+  .cap-bar{height:8px;background:var(--purple-l);border-radius:99px;overflow:hidden}
+  .cap-bar i{display:block;height:100%;border-radius:99px}
+  .cap-ok{background:var(--ok)} .cap-warn{background:var(--warn)} .cap-over{background:var(--stuck)}
+  .comp-props{margin-top:14px}
+  .pg{margin-bottom:12px}
+  .pg-h{font-size:11px;text-transform:uppercase;letter-spacing:.5px;font-weight:800;color:var(--muted);margin-bottom:6px;display:flex;gap:7px;align-items:center}
+  .pg-h span{background:var(--purple-l);color:var(--purple-d);border-radius:99px;padding:0 7px;font-size:10px}
+  .pp{display:flex;align-items:center;gap:9px;padding:7px 10px;border:1px solid var(--line);border-radius:9px;margin-bottom:6px;background:#fff}
+  .pp-lbl{flex:1;min-width:0;font-size:13px;color:var(--ink);font-weight:500}
+  .pp-drv{font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;color:var(--purple);background:var(--purple-l);padding:1px 5px;border-radius:4px;margin-left:5px}
+  .pp-eff{font-size:11px;color:var(--muted);white-space:nowrap}
+  .pp-def{font-size:11px;font-weight:700;border:1px solid var(--line);border-radius:7px;padding:3px 9px;background:#fff;color:var(--muted);cursor:pointer}
+  .pp.def{opacity:.55} .pp.def .pp-lbl{text-decoration:line-through} .pp.def .pp-def{color:var(--purple);border-color:var(--purple)}
+  .pp-empty{font-size:12.5px;color:var(--muted);padding:10px}
   .ref-link{font-size:10px;font-weight:700;text-decoration:none;background:var(--purple-l);color:var(--purple);padding:1px 6px;border-radius:6px;margin-left:4px}
   .ref-link:hover{filter:brightness(.96)}
   .backlog{margin-top:18px;border:1px dashed var(--line);border-radius:14px;background:var(--bg);padding:14px 16px}
@@ -273,6 +295,7 @@
   <!-- COVERAGE (default home) -->
   <section id="tab-coverage">
     <div class="cov-banner" id="covBanner"></div>
+    <div class="cov-actions"><span class="cov-sprint" id="covSprint"></span><button class="btn" onclick="openComposer()">Start sprint</button></div>
     <div class="cov-wrap" id="covWrap"></div>
   </section>
 
@@ -462,6 +485,25 @@
   </div>
 </div>
 
+<!-- SPRINT COMPOSER -->
+<div class="overlay" id="composer" onclick="if(event.target.id==='composer')closeComposer()">
+  <div class="modal comp">
+    <h3>Sprint composer</h3>
+    <div class="msub">Proposes the sprint against real capacity. Defer anything you cut so the debt shows on Coverage, never a silent skip.</div>
+    <div class="row3">
+      <div class="fld"><label>Sprint name</label><input id="compName" type="text"></div>
+      <div class="fld"><label>Starts (Mon)</label><input id="compStart" type="date" onchange="recompose()"></div>
+      <div class="fld"><label>Ends</label><input id="compEnd" type="date" onchange="recompose()"></div>
+    </div>
+    <div class="comp-cap" id="compCap"></div>
+    <div class="comp-props" id="compProps"></div>
+    <div class="modal-ft">
+      <button class="btn-ghost" onclick="closeComposer()">Cancel</button>
+      <div class="right"><button class="btn" id="compConfirm" onclick="confirmSprint()">Create sprint</button></div>
+    </div>
+  </div>
+</div>
+
 <script>
 const STAGES=[
   {id:'planned',name:'Planned',owner:'Chris / Sarah'},
@@ -492,7 +534,7 @@ const PERIOD_DAYS={week:7,sprint:14,month:30,quarter:90};
 const WEEK1='2026-06-15';       // Sprint 1 = week of Mon Jun 15 2026
 const N_WEEKS=8;
 
-let cards=[], bankItems=[], bankCategories=[], cadenceRules=[], filters={track:['gtm','cs','vsl'],owner:['chris','leo','sarah'],ctype:CTYPES.map(c=>c.v)}, editing=null;
+let cards=[], bankItems=[], bankCategories=[], cadenceRules=[], capacity=[], activeSprint=null, composerProps=[], filters={track:['gtm','cs','vsl'],owner:['chris','leo','sarah'],ctype:CTYPES.map(c=>c.v)}, editing=null;
 
 /* ---- date helpers ---- */
 function parseISO(s){const [y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d);}
@@ -515,7 +557,7 @@ async function api(method,url,body){
 }
 async function loadState(){
   const s=await api('GET','/api/state');
-  cards=s.cards; bankItems=s.bankItems||[]; bankCategories=s.bankCategories||[]; cadenceRules=s.cadenceRules||[];
+  cards=s.cards; bankItems=s.bankItems||[]; bankCategories=s.bankCategories||[]; cadenceRules=s.cadenceRules||[]; capacity=s.capacity||[]; activeSprint=s.sprint||null;
   renderAll();
 }
 
@@ -874,6 +916,7 @@ function renderCoverage(){
   const pct=Math.round(onTrack/rows.length*100);
   document.getElementById('covBanner').innerHTML=
     `<div class="cb-top"><span class="cb-lbl">${onTrack} of ${rows.length} content lanes on track</span><span class="cb-pct">${pct}%</span></div><div class="cb-bar"><i style="width:${pct}%"></i></div>`;
+  const cs=document.getElementById('covSprint');if(cs)cs.textContent=activeSprint?('Current sprint: '+activeSprint.name):'No active sprint';
   const dot={green:'🟢 On track',yellow:'🟡 At risk',red:'🔴 Behind',asneeded:'⚪ As needed'};
   const ownerSel=(ct,cur)=>`<select class="cov-owner ${cur?'':'cov-owner-none'}" onclick="event.stopPropagation()" onchange="setCadence('${ct}',{default_owner:this.value||null})"><option value="" ${!cur?'selected':''}>Unassigned</option><option value="chris" ${cur==='chris'?'selected':''}>Chris</option><option value="leo" ${cur==='leo'?'selected':''}>Leo</option><option value="sarah" ${cur==='sarah'?'selected':''}>Sarah</option></select>`;
   wrap.innerHTML=`<table class="cov-table"><thead><tr><th>Content type</th><th>Cadence target</th><th>Recent output</th><th>Status</th><th>Owner</th><th>Next due</th></tr></thead><tbody>`+
@@ -885,6 +928,89 @@ function renderCoverage(){
       <td>${ownerSel(r.c.v,r.owner)}</td>
       <td class="cov-next ${r.nextDue.startsWith('overdue')?'over':''}">${r.nextDue}</td>
     </tr>`).join('')+`</tbody></table>`;
+}
+
+/* ---- sprint composer ---- */
+function openComposer(){
+  const start=mondayOf(addDays(todayISO(),7)), end=addDays(start,13);
+  document.getElementById('compName').value='Sprint — '+fmtWk(start);
+  document.getElementById('compStart').value=start;
+  document.getElementById('compEnd').value=end;
+  recompose();
+  document.getElementById('composer').classList.add('show');
+}
+function closeComposer(){document.getElementById('composer').classList.remove('show');}
+function budgetFor(person,days){const b=capacity.find(x=>x.person===person);return (b?b.weekly_minutes:0)*(days/7);}
+function computeProposals(startISO,endISO){
+  const days=Math.max(1,daysBetween(startISO,endISO)+1);
+  const endT=parseISO(endISO).getTime(), startT=parseISO(startISO).getTime();
+  const props=[], perType={};
+  cadenceRules.forEach(r=>{
+    if(r.active===false)return;
+    const target=r.target_count||0, per=r.period; let units=0;
+    if(r.serialized){
+      const inFlight=cards.some(c=>c.contentType===r.content_type&&!c.backlogged&&!['live','reviewed'].includes(c.stage));
+      units=(!inFlight&&target>0)?1:0;
+    } else if(per==='month'||per==='quarter'){
+      if(target>0){
+        const lastLive=cards.filter(c=>c.contentType===r.content_type&&c.liveDate).map(c=>parseISO(c.liveDate).getTime()).sort((a,b)=>b-a)[0];
+        const due=lastLive?lastLive+(PERIOD_DAYS[per]||30)*86400000:startT;
+        units=due<=endT?1:0;
+      }
+    } else if(target>0){ units=Math.round(target*(days/(PERIOD_DAYS[per]||14))); }
+    for(let i=0;i<units;i++){
+      const meta=CTYPES.find(c=>c.v===r.content_type)||{label:r.content_type,badge:r.content_type};
+      const derived=(r.est_create_min||0)===0;
+      const owner=derived?(r.publish_role||r.create_role||'chris'):(r.create_role||'chris');
+      perType[r.content_type]=(perType[r.content_type]||0)+1;
+      props.push({content_type:r.content_type,label:meta.label,badge:meta.badge,n:perType[r.content_type],owner,
+        createRole:r.create_role,createMin:r.est_create_min||0,publishRole:r.publish_role,publishMin:r.est_publish_min||0,
+        derived,period:per,deferred:false});
+    }
+  });
+  return props;
+}
+function recompose(){composerProps=computeProposals(document.getElementById('compStart').value,document.getElementById('compEnd').value);renderComposer();}
+function renderComposer(){
+  const start=document.getElementById('compStart').value,end=document.getElementById('compEnd').value;
+  const days=Math.max(1,daysBetween(start,end)+1);
+  const people=['chris','leo','sarah'];
+  const used={chris:0,leo:0,sarah:0};
+  composerProps.filter(p=>!p.deferred).forEach(p=>{
+    if(used[p.createRole]!=null)used[p.createRole]+=p.createMin;
+    if(used[p.publishRole]!=null)used[p.publishRole]+=p.publishMin;
+  });
+  document.getElementById('compCap').innerHTML=people.map(pr=>{
+    const bud=Math.round(budgetFor(pr,days))||1, u=used[pr], pct=Math.min(100,Math.round(u/bud*100));
+    const cls=u>bud?'over':u>=0.8*bud?'warn':'ok';
+    return `<div class="cap-row"><div class="cap-lbl">${cap(pr)}<span>${u} / ${bud}m</span></div><div class="cap-bar"><i class="cap-${cls}" style="width:${pct}%"></i></div></div>`;
+  }).join('');
+  document.getElementById('compProps').innerHTML=people.map(pr=>{
+    const mine=composerProps.filter(p=>p.owner===pr);
+    if(!mine.length)return '';
+    return `<div class="pg"><div class="pg-h">${cap(pr)} <span>${mine.filter(p=>!p.deferred).length}</span></div>`+
+      mine.map(p=>`<div class="pp ${p.deferred?'def':''}"><span class="ctype ct-${p.content_type}">${p.badge}</span>
+        <span class="pp-lbl">${esc(p.label)}${p.n>1?' #'+p.n:''}${p.derived?' <span class="pp-drv">chain</span>':''}</span>
+        <span class="pp-eff">~${p.createMin+p.publishMin}m</span>
+        <button class="pp-def" onclick="toggleDefer('${p.content_type}',${p.n})">${p.deferred?'Restore':'Defer'}</button></div>`).join('')+`</div>`;
+  }).join('')||'<div class="pp-empty">No lanes due in this window.</div>';
+  const nC=composerProps.filter(p=>!p.deferred).length, nD=composerProps.filter(p=>p.deferred).length;
+  document.getElementById('compConfirm').textContent=`Create sprint (${nC} card${nC!==1?'s':''}${nD?`, ${nD} deferred`:''})`;
+}
+function cap(s){return s[0].toUpperCase()+s.slice(1);}
+function toggleDefer(ct,n){const p=composerProps.find(x=>x.content_type===ct&&x.n===n);if(p)p.deferred=!p.deferred;renderComposer();}
+async function confirmSprint(){
+  const name=document.getElementById('compName').value.trim()||'Sprint';
+  const start=document.getElementById('compStart').value, end=document.getElementById('compEnd').value;
+  const tmap=ct=>ct==='ad'?'ad':ct==='vsl'?'vsl':'organic';
+  const cardsOut=composerProps.filter(p=>!p.deferred).map(p=>({
+    name:p.label+(p.n>1?' #'+p.n:''),contentType:p.content_type,type:tmap(p.content_type),
+    funnelStage:p.content_type==='linkedin_post'?'mof':null,track:'gtm',owner:p.owner,
+    hook:'Proposed by the sprint composer. Rename + set track.'}));
+  const defCT=[...new Set(composerProps.filter(p=>p.deferred).map(p=>p.content_type))];
+  const deferrals=defCT.map(ct=>{const r=cadenceRules.find(x=>x.content_type===ct);return {content_type:ct,deferred_to:addDays(end,PERIOD_DAYS[r&&r.period]||14)};});
+  try{await api('POST','/api/sprints/create',{name,starts_on:start,ends_on:end,cards:cardsOut,deferrals});}catch(e){}
+  closeComposer();await loadState();switchTab('board');
 }
 
 /* ---- backlog ---- */
