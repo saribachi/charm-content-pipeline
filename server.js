@@ -192,7 +192,7 @@ function rowToCard(r) {
     recordWeek: iso(r.record_week), liveDate: iso(r.live_date),
     perf: { hold: r.perf_hold || '', ctr: r.perf_ctr || '', cpl: r.perf_cpl || '' },
     position: r.position, backlogged: !!r.backlogged,
-    contentType: r.content_type, referenceUrl: r.reference_url,
+    contentType: r.content_type, referenceUrl: r.reference_url, funnelStage: r.funnel_stage,
     editStartedAt: r.edit_started_at,
     createdAt: r.created_at, updatedAt: r.updated_at,
   };
@@ -202,18 +202,36 @@ const FIELDS = {
   name: 'name', hook: 'hook', track: 'track', type: 'type', stage: 'stage',
   owner: 'owner', batch: 'batch', file: 'file', notes: 'notes', script: 'script',
   recordWeek: 'record_week', liveDate: 'live_date', backlogged: 'backlogged',
-  contentType: 'content_type', referenceUrl: 'reference_url',
+  contentType: 'content_type', referenceUrl: 'reference_url', funnelStage: 'funnel_stage',
 };
 
 app.get('/api/state', async (_req, res) => {
   try {
     const cards = await pool.query('SELECT * FROM cards ORDER BY position, created_at');
     const bank = await pool.query('SELECT id, category, text, done, position FROM bank_items ORDER BY position, id');
+    const cadence = await pool.query('SELECT content_type, target_count, period, default_owner, active FROM cadence_rules ORDER BY id');
     res.json({
       cards: cards.rows.map(rowToCard),
       bankItems: bank.rows,
       bankCategories,
+      cadenceRules: cadence.rows,
     });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Update a coverage cadence lane (target / owner / active), edited from the dashboard.
+app.put('/api/cadence/:ct', async (req, res) => {
+  try {
+    const b = req.body || {};
+    const sets = [], vals = [];
+    let i = 1;
+    if ('target_count' in b) { sets.push(`target_count = $${i++}`); vals.push(Number(b.target_count) || 0); }
+    if ('default_owner' in b) { sets.push(`default_owner = $${i++}`); vals.push(b.default_owner || null); }
+    if ('active' in b) { sets.push(`active = $${i++}`); vals.push(!!b.active); }
+    if (!sets.length) return res.json({ ok: true });
+    vals.push(req.params.ct);
+    await pool.query(`UPDATE cadence_rules SET ${sets.join(', ')} WHERE content_type = $${i}`, vals);
+    res.json({ ok: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -229,7 +247,7 @@ app.post('/api/cards', async (req, res) => {
       [id, b.name || 'Untitled', b.hook || '', b.track || 'gtm',
        b.type || (b.track === 'vsl' ? 'vsl' : 'ad'), b.stage || 'planned',
        b.owner || 'chris', b.batch || '', b.file || '', b.notes || '', b.script || '',
-       b.recordWeek || null, b.contentType || 'Instagram', b.referenceUrl || '']
+       b.recordWeek || null, b.contentType || 'video_organic', b.referenceUrl || '']
     );
     const card = rowToCard(r.rows[0]);
     notifyBoard(`:new: *New card added:* ${card.name} (${TRACK_LABEL[card.track] || card.track})`);

@@ -92,8 +92,30 @@
   .timer-o{background:var(--stuck);color:#fff}
   .top-l{display:flex;gap:5px;align-items:center;min-width:0}
   .ctype{font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;padding:2px 6px;border-radius:5px;color:#fff;white-space:nowrap}
-  .ct-instagram{background:linear-gradient(45deg,#e0218a,#8733ed)}
-  .ct-ad{background:#ea7317} .ct-vsl{background:var(--vsl)} .ct-youtube{background:#dc2626} .ct-other{background:#6b6577}
+  .ct-ad{background:#ea7317} .ct-vsl{background:var(--vsl)}
+  .ct-video_organic{background:linear-gradient(45deg,#e0218a,#8733ed)}
+  .ct-linkedin_post{background:#0a66c2} .ct-lead_magnet{background:#16a34a}
+  .ct-newsletter_issue{background:#d97706} .ct-welcome_flow_email{background:#f59e0b}
+  .ct-partner_asset{background:#475569} .ct-landing_page{background:#db2777}
+  .fbadge{font-size:8px;font-weight:800;letter-spacing:.4px;padding:2px 5px;border-radius:5px;background:var(--purple-l);color:var(--purple-d)}
+  /* coverage dashboard */
+  .cov-banner{background:linear-gradient(135deg,#8733ed,#a855f7);border-radius:14px;padding:15px 20px;color:#fff;margin-bottom:18px}
+  .cb-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:9px}
+  .cb-lbl{font-weight:700;font-size:16px} .cb-pct{font-weight:800;font-size:15px}
+  .cb-bar{height:8px;background:rgba(255,255,255,.28);border-radius:99px;overflow:hidden}
+  .cb-bar i{display:block;height:100%;background:#fff;border-radius:99px}
+  .cov-table{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--line);border-radius:13px;overflow:hidden}
+  .cov-table th{text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);font-weight:700;padding:11px 14px;background:var(--purple-l)}
+  .cov-table td{padding:10px 14px;border-top:1px solid var(--line);font-size:13px;color:var(--ink);vertical-align:middle}
+  .cov-row{cursor:pointer} .cov-row:hover{background:var(--bg)}
+  .cov-name{font-weight:600} .cov-name .ctype{margin-right:7px}
+  .cov-sub{color:var(--muted);font-size:10px}
+  .cov-status{font-weight:700;font-size:12px;white-space:nowrap}
+  .s-red{color:var(--stuck)} .s-yellow{color:var(--warn)} .s-green{color:var(--ok)} .s-asneeded{color:var(--muted)}
+  .cov-target{width:52px;border:1px solid var(--line);border-radius:6px;padding:3px 6px;font-size:12px;font-family:inherit;margin-left:6px}
+  .cov-owner{border:1px solid var(--line);border-radius:7px;padding:4px 8px;font-size:12px;font-family:inherit;background:#fff;color:var(--ink)}
+  .cov-owner-none{background:var(--stuck);color:#fff;border-color:var(--stuck);font-weight:700}
+  .cov-next.over{color:var(--stuck);font-weight:700}
   .ref-link{font-size:10px;font-weight:700;text-decoration:none;background:var(--purple-l);color:var(--purple);padding:1px 6px;border-radius:6px;margin-left:4px}
   .ref-link:hover{filter:brightness(.96)}
   .backlog{margin-top:18px;border:1px dashed var(--line);border-radius:14px;background:var(--bg);padding:14px 16px}
@@ -240,15 +262,22 @@
   </div>
 
   <div class="tabs">
-    <div class="tab active" data-tab="board" onclick="switchTab('board')">Pipeline board</div>
+    <div class="tab active" data-tab="coverage" onclick="switchTab('coverage')">Coverage</div>
+    <div class="tab" data-tab="board" onclick="switchTab('board')">Pipeline board</div>
     <div class="tab" data-tab="weeks" onclick="switchTab('weeks')">Rolling weeks</div>
     <div class="tab" data-tab="bank" onclick="switchTab('bank')">Leo's idea bank</div>
     <div class="tab" data-tab="links" onclick="switchTab('links')">Links &amp; docs</div>
     <div class="tab" data-tab="ref" onclick="switchTab('ref')">Cadence &amp; rules</div>
   </div>
 
+  <!-- COVERAGE (default home) -->
+  <section id="tab-coverage">
+    <div class="cov-banner" id="covBanner"></div>
+    <div class="cov-wrap" id="covWrap"></div>
+  </section>
+
   <!-- BOARD -->
-  <section id="tab-board">
+  <section id="tab-board" class="hide">
     <div class="toolbar">
       <div class="grp">
         <label>Track</label>
@@ -258,9 +287,7 @@
       </div>
       <div class="grp">
         <label>Type</label>
-        <span class="chip on" data-f="ctype" data-v="Instagram" onclick="toggleF(this)">Instagram</span>
-        <span class="chip on" data-f="ctype" data-v="Ad" onclick="toggleF(this)">Ad</span>
-        <span class="chip on" data-f="ctype" data-v="VSL" onclick="toggleF(this)">VSL</span>
+        <span id="typeChips"></span>
       </div>
       <div class="grp">
         <label>Owner</label>
@@ -404,8 +431,9 @@
       <div class="fld"><label>Owner</label><select id="mOwner"><option value="chris">Chris</option><option value="leo">Leo</option><option value="sarah">Sarah</option></select></div>
     </div>
     <div class="row3">
-      <div class="fld"><label>Content type</label><select id="mCtype"><option>Instagram</option><option>Ad</option><option>VSL</option><option>YouTube</option><option>Other</option></select></div>
-      <div class="fld" style="grid-column:span 2"><label>Reference / inspiration URL(s) <span style="text-transform:none;font-weight:500;color:var(--purple)">— posts that inspired this, for easy reference</span></label><input id="mRef" type="text" placeholder="https://www.instagram.com/p/…  (space or comma separated)"></div>
+      <div class="fld"><label>Content type</label><select id="mCtype"><option value="ad">Ad</option><option value="vsl">VSL</option><option value="video_organic">Organic video</option><option value="linkedin_post">LinkedIn post</option><option value="lead_magnet">Lead magnet</option><option value="newsletter_issue">Newsletter</option><option value="welcome_flow_email">Welcome email</option><option value="partner_asset">Partner asset</option><option value="landing_page">Landing page</option></select></div>
+      <div class="fld"><label>Funnel stage</label><select id="mFunnel"><option value="">— (MOF default)</option><option value="tof">TOF</option><option value="mof">MOF</option><option value="bof">BOF</option></select></div>
+      <div class="fld"><label>Reference URL(s) <span style="text-transform:none;font-weight:500;color:var(--purple)">— inspiration links</span></label><input id="mRef" type="text" placeholder="https://…  (space/comma sep)"></div>
     </div>
     <div class="row3">
       <div class="fld"><label>Batch</label><input id="mBatch" type="text" placeholder="Sprint 1"></div>
@@ -446,10 +474,25 @@ const STAGES=[
 ];
 const STAGE_IDX={planned:0,recorded:1,shared:2,edit:3,scheduled:4,live:5,reviewed:6};
 const TRACK_LBL={gtm:'GTM',cs:'CS-Flex',vsl:'VSL'};
+// v2 content types (9 lanes of the acquisition diagram)
+const CTYPES=[
+  {v:'ad',label:'Ad',badge:'Ad'},
+  {v:'vsl',label:'VSL',badge:'VSL'},
+  {v:'video_organic',label:'Organic video',badge:'Video'},
+  {v:'linkedin_post',label:'LinkedIn post',badge:'LinkedIn'},
+  {v:'lead_magnet',label:'Lead magnet',badge:'Magnet'},
+  {v:'newsletter_issue',label:'Newsletter',badge:'Newsletter'},
+  {v:'welcome_flow_email',label:'Welcome email',badge:'Welcome'},
+  {v:'partner_asset',label:'Partner asset',badge:'Partner'},
+  {v:'landing_page',label:'Landing page',badge:'Landing'},
+];
+const CTYPE_LABEL=Object.fromEntries(CTYPES.map(c=>[c.v,c.label]));
+const CTYPE_BADGE=Object.fromEntries(CTYPES.map(c=>[c.v,c.badge]));
+const PERIOD_DAYS={week:7,sprint:14,month:30,quarter:90};
 const WEEK1='2026-06-15';       // Sprint 1 = week of Mon Jun 15 2026
 const N_WEEKS=8;
 
-let cards=[], bankItems=[], bankCategories=[], filters={track:['gtm','cs','vsl'],owner:['chris','leo','sarah'],ctype:['Instagram','Ad','VSL']}, editing=null;
+let cards=[], bankItems=[], bankCategories=[], cadenceRules=[], filters={track:['gtm','cs','vsl'],owner:['chris','leo','sarah'],ctype:CTYPES.map(c=>c.v)}, editing=null;
 
 /* ---- date helpers ---- */
 function parseISO(s){const [y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d);}
@@ -472,15 +515,16 @@ async function api(method,url,body){
 }
 async function loadState(){
   const s=await api('GET','/api/state');
-  cards=s.cards; bankItems=s.bankItems||[]; bankCategories=s.bankCategories||[];
+  cards=s.cards; bankItems=s.bankItems||[]; bankCategories=s.bankCategories||[]; cadenceRules=s.cadenceRules||[];
   renderAll();
 }
 
 /* ---- tabs / filters ---- */
 function switchTab(t){
   document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===t));
-  ['board','weeks','bank','links','ref'].forEach(id=>document.getElementById('tab-'+id).classList.toggle('hide',id!==t));
+  ['coverage','board','weeks','bank','links','ref'].forEach(id=>document.getElementById('tab-'+id).classList.toggle('hide',id!==t));
   if(t==='weeks')renderWeeks();
+  if(t==='coverage')renderCoverage();
 }
 function toggleF(el){
   const f=el.dataset.f,v=el.dataset.v;el.classList.toggle('on');
@@ -516,7 +560,7 @@ function renderBoard(){
   const board=document.getElementById('board');board.innerHTML='';
   STAGES.forEach(st=>{
     const list=cards.filter(c=>c.stage===st.id&&!c.backlogged);
-    const visible=list.filter(c=>filters.track.includes(c.track)&&filters.owner.includes(c.owner)&&(!['Instagram','Ad','VSL'].includes(c.contentType)||filters.ctype.includes(c.contentType)));
+    const visible=list.filter(c=>filters.track.includes(c.track)&&filters.owner.includes(c.owner)&&filters.ctype.includes(c.contentType));
     const col=document.createElement('div');col.className='col';col.dataset.stage=st.id;
     col.innerHTML=`<div class="col-h"><div><div class="name">${st.name}</div><div class="owner">${st.owner}</div></div><div class="cnt">${list.length}</div></div>`;
     visible.forEach(c=>col.appendChild(cardEl(c)));
@@ -594,10 +638,11 @@ function cardEl(c){
   else if(isStuck(c))corner='<span class="stuckdot" title="Not moved in 7+ days"></span>';
   const scriptBadge=(c.script&&c.script.trim())?'<span class="script-pill" title="Script ready">📄 script</span>':'';
   const newBadge=isNew(c)?'<span class="new-pill" title="Added in the last 24 hours">NEW</span>':'';
-  const ctype=c.contentType||'';const ctypeBadge=ctype?`<span class="ctype ct-${ctype.toLowerCase()}">${esc(ctype)}</span>`:'';
+  const ctype=c.contentType||'';const ctypeBadge=ctype?`<span class="ctype ct-${ctype}">${esc(CTYPE_BADGE[ctype]||ctype)}</span>`:'';
+  const funBadge=c.funnelStage?`<span class="fbadge">${esc(c.funnelStage.toUpperCase())}</span>`:'';
   const refs=refLinks(c);
   const t=timerInfo(c);const timerEl=t?`<div class="timer ${t.cls}" title="In-Edit SLA: ${slaHours(c)}h">${t.label}</div>`:'';
-  d.innerHTML=`<div class="top"><span class="top-l"><span class="tag ${c.track}">${TRACK_LBL[c.track]}</span>${ctypeBadge}</span><span style="display:flex;gap:4px;align-items:center">${newBadge}${scriptBadge}${c.type==='vsl'?'<span class="vsl-pill">VSL</span>':''}</span></div>${corner}
+  d.innerHTML=`<div class="top"><span class="top-l"><span class="tag ${c.track}">${TRACK_LBL[c.track]}</span>${ctypeBadge}${funBadge}</span><span style="display:flex;gap:4px;align-items:center">${newBadge}${scriptBadge}${c.type==='vsl'?'<span class="vsl-pill">VSL</span>':''}</span></div>${corner}
     <div class="ttl">${esc(c.name)}</div><div class="hk">${esc(c.hook||'')}</div>${timerEl}
     <div class="ft"><span class="own ${ownClass}">${c.owner}</span>${refs}${perf}</div>`;
   d.addEventListener('pointerdown',e=>startDrag(e,c,d));
@@ -728,7 +773,7 @@ function openEdit(id){
   document.getElementById('mSub').textContent=(c.batch||'')+(c.file?(' · '+c.file):'');
   document.getElementById('mName').value=c.name||'';document.getElementById('mHook').value=c.hook||'';
   document.getElementById('mTrack').value=c.track;document.getElementById('mStage').innerHTML=stageOptions(c.stage);
-  document.getElementById('mCtype').value=c.contentType||'Instagram';document.getElementById('mRef').value=c.referenceUrl||'';
+  document.getElementById('mCtype').value=c.contentType||'video_organic';document.getElementById('mFunnel').value=c.funnelStage||'';document.getElementById('mRef').value=c.referenceUrl||'';
   document.getElementById('mOwner').value=c.owner;document.getElementById('mBatch').value=c.batch||'';
   document.getElementById('mRecord').value=c.recordWeek||'';document.getElementById('mLive').value=c.liveDate||'';
   document.getElementById('mFile').value=c.file||'';document.getElementById('mNotes').value=c.notes||'';
@@ -743,7 +788,7 @@ function openNew(){
   document.getElementById('mTitle').textContent='New asset';document.getElementById('mSub').textContent='';
   document.getElementById('mName').value='';document.getElementById('mHook').value='';
   document.getElementById('mTrack').value='gtm';document.getElementById('mStage').innerHTML=stageOptions('planned');
-  document.getElementById('mCtype').value='Instagram';document.getElementById('mRef').value='';
+  document.getElementById('mCtype').value='video_organic';document.getElementById('mFunnel').value='';document.getElementById('mRef').value='';
   document.getElementById('mOwner').value='chris';document.getElementById('mBatch').value='Sprint 1';
   document.getElementById('mRecord').value=WEEK1;document.getElementById('mLive').value='';
   document.getElementById('mFile').value='';document.getElementById('mNotes').value='';
@@ -758,6 +803,7 @@ async function saveCard(){
     track:document.getElementById('mTrack').value,
     stage:document.getElementById('mStage').value,
     contentType:document.getElementById('mCtype').value,
+    funnelStage:document.getElementById('mFunnel').value||null,
     referenceUrl:document.getElementById('mRef').value.trim(),
     owner:document.getElementById('mOwner').value,
     batch:document.getElementById('mBatch').value.trim(),
@@ -784,7 +830,62 @@ async function resetAll(){
   }
 }
 
-function renderAll(){renderBoard();renderBank();renderBacklog();if(!document.getElementById('tab-weeks').classList.contains('hide'))renderWeeks();}
+function renderAll(){renderBoard();renderBank();renderBacklog();renderCoverage();if(!document.getElementById('tab-weeks').classList.contains('hide'))renderWeeks();}
+
+/* ---- coverage dashboard ---- */
+function renderTypeChips(){
+  const el=document.getElementById('typeChips');if(!el)return;
+  el.innerHTML=CTYPES.map(c=>`<span class="chip ${filters.ctype.includes(c.v)?'on':''}" data-f="ctype" data-v="${c.v}" onclick="toggleF(this)">${c.badge}</span>`).join('');
+}
+function filterByType(v){filters.ctype=[v];renderTypeChips();switchTab('board');}
+async function setCadence(ct,patch){
+  try{await api('PUT','/api/cadence/'+ct,patch);}catch(e){}
+  const r=cadenceRules.find(x=>x.content_type===ct);if(r)Object.assign(r,patch);
+  renderCoverage();
+}
+function coverageRows(){
+  const now=Date.now();
+  return CTYPES.map(c=>{
+    const rule=cadenceRules.find(x=>x.content_type===c.v)||{content_type:c.v,target_count:0,period:'sprint',default_owner:null};
+    const winDays=rule.period==='quarter'?90:30;
+    const mine=cards.filter(x=>x.contentType===c.v&&!x.backlogged);
+    const liveIn=mine.filter(x=>x.liveDate&&new Date(x.liveDate).getTime()>=now-winDays*86400000).length;
+    const lastLive=mine.filter(x=>x.liveDate).map(x=>new Date(x.liveDate).getTime()).sort((a,b)=>b-a)[0]||null;
+    const periodDays=PERIOD_DAYS[rule.period]||14;
+    const target=rule.target_count||0, owner=rule.default_owner||'', asNeeded=target<=0;
+    const expected=asNeeded?0:target*(winDays/periodDays);
+    let status;
+    if(asNeeded)status='asneeded';
+    else if(!owner)status='red';                       // unassigned forces red
+    else if(liveIn>=expected)status='green';
+    else if(liveIn>=0.75*expected)status='yellow';
+    else status='red';
+    let nextDue;
+    if(asNeeded)nextDue='as needed';
+    else{const due=lastLive?lastLive+periodDays*86400000:now;const dd=Math.round((due-now)/86400000);
+      nextDue=dd<0?`overdue ${-dd}d`:(dd===0?'due now':`in ${dd}d`);}
+    return {c,rule,liveIn,winDays,target,owner,status,nextDue,asNeeded};
+  });
+}
+function renderCoverage(){
+  const wrap=document.getElementById('covWrap');if(!wrap)return;
+  const rows=coverageRows();
+  const onTrack=rows.filter(r=>r.status==='green'||r.status==='asneeded').length;
+  const pct=Math.round(onTrack/rows.length*100);
+  document.getElementById('covBanner').innerHTML=
+    `<div class="cb-top"><span class="cb-lbl">${onTrack} of ${rows.length} content lanes on track</span><span class="cb-pct">${pct}%</span></div><div class="cb-bar"><i style="width:${pct}%"></i></div>`;
+  const dot={green:'🟢 On track',yellow:'🟡 At risk',red:'🔴 Behind',asneeded:'⚪ As needed'};
+  const ownerSel=(ct,cur)=>`<select class="cov-owner ${cur?'':'cov-owner-none'}" onclick="event.stopPropagation()" onchange="setCadence('${ct}',{default_owner:this.value||null})"><option value="" ${!cur?'selected':''}>Unassigned</option><option value="chris" ${cur==='chris'?'selected':''}>Chris</option><option value="leo" ${cur==='leo'?'selected':''}>Leo</option><option value="sarah" ${cur==='sarah'?'selected':''}>Sarah</option></select>`;
+  wrap.innerHTML=`<table class="cov-table"><thead><tr><th>Content type</th><th>Cadence target</th><th>Recent output</th><th>Status</th><th>Owner</th><th>Next due</th></tr></thead><tbody>`+
+    rows.map(r=>`<tr class="cov-row" onclick="filterByType('${r.c.v}')">
+      <td class="cov-name"><span class="ctype ct-${r.c.v}">${r.c.badge}</span> ${r.c.label}</td>
+      <td>${r.asNeeded?'as needed':`${r.target}/${r.rule.period}`} <input class="cov-target" type="number" min="0" value="${r.target}" onclick="event.stopPropagation()" onchange="setCadence('${r.c.v}',{target_count:this.value})"></td>
+      <td>${r.liveIn} <span class="cov-sub">/${r.winDays}d</span></td>
+      <td class="cov-status s-${r.status}">${dot[r.status]}</td>
+      <td>${ownerSel(r.c.v,r.owner)}</td>
+      <td class="cov-next ${r.nextDue.startsWith('overdue')?'over':''}">${r.nextDue}</td>
+    </tr>`).join('')+`</tbody></table>`;
+}
 
 /* ---- backlog ---- */
 function stageName(id){const s=STAGES.find(x=>x.id===id);return s?s.name:id;}
@@ -813,6 +914,7 @@ function renderBacklog(){
 }
 function esc(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 
+renderTypeChips();
 loadState().catch(()=>setSync(false,'Cannot reach server'));
 setInterval(()=>{if(document.getElementById('overlay').classList.contains('show'))return;loadState().catch(()=>{});},20000);
 </script>

@@ -175,6 +175,41 @@ export async function initDb() {
   // (so their timer + SLA reminder were skipped). Start their clock now. Self-heals any future NULL too.
   await pool.query(`UPDATE cards SET edit_started_at = now() WHERE stage = 'edit' AND edit_started_at IS NULL`);
 
+  // ---- v2 Phase 1: content-type expansion + funnel stage + cadence rules ----
+  await pool.query(`ALTER TABLE cards ADD COLUMN IF NOT EXISTS funnel_stage TEXT`);
+  await pool.query(`ALTER TABLE cards ALTER COLUMN content_type SET DEFAULT 'video_organic'`);
+  // Remap legacy content-type labels to the v2 enum values.
+  await pool.query(`UPDATE cards SET content_type='ad'  WHERE content_type='Ad'`);
+  await pool.query(`UPDATE cards SET content_type='vsl' WHERE content_type='VSL'`);
+  await pool.query(`UPDATE cards SET content_type='video_organic'
+    WHERE content_type IS NULL OR content_type NOT IN
+    ('ad','vsl','video_organic','linkedin_post','lead_magnet','newsletter_issue','welcome_flow_email','partner_asset','landing_page')`);
+  await pool.query(`CREATE TABLE IF NOT EXISTS cadence_rules (
+    id           SERIAL PRIMARY KEY,
+    content_type TEXT NOT NULL UNIQUE,
+    target_count INTEGER NOT NULL,
+    period       TEXT NOT NULL,
+    default_owner TEXT,
+    active       BOOLEAN DEFAULT true
+  )`);
+  // Seed the 9 content lanes (idempotent). Realistic 3-person cadence; edit in the UI.
+  const seedCadence = [
+    ['ad', 8, 'sprint', 'chris'],
+    ['vsl', 0, 'sprint', 'chris'],            // no cadence; as-needed
+    ['video_organic', 2, 'week', 'leo'],
+    ['linkedin_post', 2, 'week', 'sarah'],
+    ['lead_magnet', 2, 'quarter', null],      // unassigned -> red
+    ['newsletter_issue', 1, 'week', null],    // unassigned -> red
+    ['welcome_flow_email', 0, 'sprint', 'sarah'],
+    ['partner_asset', 1, 'month', 'sarah'],
+    ['landing_page', 0, 'sprint', 'sarah'],   // as-needed
+  ];
+  for (const [ct, tc, per, own] of seedCadence) {
+    await pool.query(
+      `INSERT INTO cadence_rules (content_type, target_count, period, default_owner)
+       VALUES ($1,$2,$3,$4) ON CONFLICT (content_type) DO NOTHING`, [ct, tc, per, own]);
+  }
+
   const seeded = await pool.query(`SELECT v FROM meta WHERE k = 'seeded'`);
   if (seeded.rowCount === 0) {
     await seedCards();
