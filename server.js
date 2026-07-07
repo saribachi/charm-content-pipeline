@@ -194,6 +194,7 @@ function rowToCard(r) {
     position: r.position, backlogged: !!r.backlogged,
     contentType: r.content_type, referenceUrl: r.reference_url, funnelStage: r.funnel_stage,
     editStartedAt: r.edit_started_at, sprintId: r.sprint_id,
+    parentId: r.parent_id, chainTemplateId: r.chain_template_id,
     createdAt: r.created_at, updatedAt: r.updated_at,
   };
 }
@@ -203,6 +204,7 @@ const FIELDS = {
   owner: 'owner', batch: 'batch', file: 'file', notes: 'notes', script: 'script',
   recordWeek: 'record_week', liveDate: 'live_date', backlogged: 'backlogged',
   contentType: 'content_type', referenceUrl: 'reference_url', funnelStage: 'funnel_stage',
+  chainTemplateId: 'chain_template_id',
 };
 
 app.get('/api/state', async (_req, res) => {
@@ -213,6 +215,7 @@ app.get('/api/state', async (_req, res) => {
       est_create_min, est_publish_min, create_role, publish_role, next_due_date, serialized FROM cadence_rules ORDER BY id`);
     const sprint = await pool.query(`SELECT * FROM sprints WHERE status='active' ORDER BY starts_on DESC LIMIT 1`);
     const capacity = await pool.query('SELECT person, weekly_minutes FROM capacity_budgets');
+    const chains = await pool.query('SELECT id, name, trigger_stage, children FROM chain_templates ORDER BY id');
     res.json({
       cards: cards.rows.map(rowToCard),
       bankItems: bank.rows,
@@ -220,6 +223,7 @@ app.get('/api/state', async (_req, res) => {
       cadenceRules: cadence.rows,
       sprint: sprint.rows[0] || null,
       capacity: capacity.rows,
+      chainTemplates: chains.rows,
     });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -282,14 +286,14 @@ app.post('/api/cards', async (req, res) => {
     const b = req.body || {};
     const id = 'n' + Date.now() + Math.floor(Math.random() * 1000);
     const r = await pool.query(
-      `INSERT INTO cards (id, name, hook, track, type, stage, owner, batch, file, notes, script, record_week, content_type, reference_url, position)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,
+      `INSERT INTO cards (id, name, hook, track, type, stage, owner, batch, file, notes, script, record_week, content_type, reference_url, chain_template_id, position)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,
          (SELECT COALESCE(MAX(position),0)+1 FROM cards))
        RETURNING *`,
       [id, b.name || 'Untitled', b.hook || '', b.track || 'gtm',
        b.type || (b.track === 'vsl' ? 'vsl' : 'ad'), b.stage || 'planned',
        b.owner || 'chris', b.batch || '', b.file || '', b.notes || '', b.script || '',
-       b.recordWeek || null, b.contentType || 'video_organic', b.referenceUrl || '']
+       b.recordWeek || null, b.contentType || 'video_organic', b.referenceUrl || '', b.chainTemplateId || null]
     );
     const card = rowToCard(r.rows[0]);
     notifyBoard(`:new: *New card added:* ${card.name} (${TRACK_LABEL[card.track] || card.track})`);
@@ -347,6 +351,27 @@ app.put('/api/cards/:id', async (req, res) => {
         notifyBoard(`:warning: Blocker flagged on *${card.name}*`);
       }
     }
+    // Chain spawn: a templated card reaching its trigger stage creates its derivatives, once.
+    if (card.chainTemplateId && before && card.stage !== before.stage) {
+      const tpl = (await pool.query('SELECT trigger_stage, children FROM chain_templates WHERE id=$1', [card.chainTemplateId])).rows[0];
+      if (tpl && card.stage === tpl.trigger_stage) {
+        const has = await pool.query('SELECT 1 FROM cards WHERE parent_id=$1 LIMIT 1', [card.id]);
+        if (!has.rowCount) {
+          const kids = Array.isArray(tpl.children) ? tpl.children : [];
+          let k = 0;
+          for (const ch of kids) {
+            await pool.query(
+              `INSERT INTO cards (id, name, hook, track, type, stage, owner, batch, content_type, funnel_stage, parent_id, position)
+               VALUES ($1,$2,$3,$4,$5,'planned',$6,$7,$8,$9,$10,(SELECT COALESCE(MAX(position),0)+1 FROM cards))`,
+              ['dv' + card.id + '_' + (k++), `${card.name} — ${ch.title_suffix || ch.content_type}`,
+               `Derived from: ${card.name}`, card.track,
+               ch.content_type === 'ad' ? 'ad' : ch.content_type === 'vsl' ? 'vsl' : 'organic',
+               card.owner || 'chris', card.batch || '', ch.content_type, ch.funnel_stage || null, card.id]);
+          }
+          if (kids.length) notifyBoard(`:link: *${card.name}* spawned ${kids.length} derivative${kids.length !== 1 ? 's' : ''} (chain). <${BOARD_URL}|Open the board →>`);
+        }
+      }
+    }
     res.json(card);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -354,6 +379,7 @@ app.put('/api/cards/:id', async (req, res) => {
 app.delete('/api/cards/:id', async (req, res) => {
   try {
     // No Slack alert on delete (not an impactful pipeline update).
+    await pool.query('UPDATE cards SET parent_id=NULL WHERE parent_id=$1', [req.params.id]); // orphan children, never cascade
     await pool.query('DELETE FROM cards WHERE id = $1', [req.params.id]);
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ error: e.message }); }

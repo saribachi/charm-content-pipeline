@@ -103,6 +103,14 @@
   .ct-newsletter_issue{background:#d97706} .ct-welcome_flow_email{background:#f59e0b}
   .ct-partner_asset{background:#475569} .ct-landing_page{background:#db2777}
   .fbadge{font-size:8px;font-weight:800;letter-spacing:.4px;padding:2px 5px;border-radius:5px;background:var(--purple-l);color:var(--purple-d)}
+  .chain-badge{font-size:12px;line-height:1}
+  .child-of{font-size:10px;color:var(--purple);font-weight:600;margin-top:4px}
+  .derivs{margin:10px 0 2px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--bg)}
+  .derivs-h{font-size:11px;text-transform:uppercase;letter-spacing:.5px;font-weight:800;color:var(--muted);margin-bottom:7px}
+  .deriv{display:flex;align-items:center;gap:8px;padding:5px 0;cursor:pointer;font-size:12.5px;color:var(--ink)}
+  .deriv:hover{color:var(--purple)}
+  .deriv-nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .deriv-stage{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
   /* coverage dashboard */
   .cov-banner{background:linear-gradient(135deg,#8733ed,#a855f7);border-radius:14px;padding:15px 20px;color:#fff;margin-bottom:18px}
   .cb-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:9px}
@@ -464,6 +472,8 @@
       <div class="fld"><label>Funnel stage</label><select id="mFunnel"><option value="">— (MOF default)</option><option value="tof">TOF</option><option value="mof">MOF</option><option value="bof">BOF</option></select></div>
       <div class="fld"><label>Reference URL(s) <span style="text-transform:none;font-weight:500;color:var(--purple)">— inspiration links</span></label><input id="mRef" type="text" placeholder="https://…  (space/comma sep)"></div>
     </div>
+    <div class="fld"><label>Repurposing chain <span style="text-transform:none;font-weight:500;color:var(--purple)">— auto-spawns derivatives when this hits the trigger stage</span></label><select id="mChain"><option value="">None</option></select></div>
+    <div id="mDerivatives"></div>
     <div class="row3">
       <div class="fld"><label>Batch</label><input id="mBatch" type="text" placeholder="Sprint 1"></div>
       <div class="fld"><label>Record week (Mon)</label><input id="mRecord" type="date"></div>
@@ -561,7 +571,7 @@ const PERIOD_DAYS={week:7,sprint:14,month:30,quarter:90};
 const WEEK1='2026-06-15';       // Sprint 1 = week of Mon Jun 15 2026
 const N_WEEKS=8;
 
-let cards=[], bankItems=[], bankCategories=[], cadenceRules=[], capacity=[], activeSprint=null, composerProps=[], filters={track:['gtm','cs','vsl'],owner:['chris','leo','sarah'],ctype:CTYPES.map(c=>c.v)}, editing=null;
+let cards=[], bankItems=[], bankCategories=[], cadenceRules=[], capacity=[], activeSprint=null, composerProps=[], chainTemplates=[], filters={track:['gtm','cs','vsl'],owner:['chris','leo','sarah'],ctype:CTYPES.map(c=>c.v)}, editing=null;
 
 /* ---- date helpers ---- */
 function parseISO(s){const [y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d);}
@@ -584,7 +594,7 @@ async function api(method,url,body){
 }
 async function loadState(){
   const s=await api('GET','/api/state');
-  cards=s.cards; bankItems=s.bankItems||[]; bankCategories=s.bankCategories||[]; cadenceRules=s.cadenceRules||[]; capacity=s.capacity||[]; activeSprint=s.sprint||null;
+  cards=s.cards; bankItems=s.bankItems||[]; bankCategories=s.bankCategories||[]; cadenceRules=s.cadenceRules||[]; capacity=s.capacity||[]; activeSprint=s.sprint||null; chainTemplates=s.chainTemplates||[];
   renderAll();
 }
 
@@ -711,10 +721,13 @@ function cardEl(c){
   const newBadge=isNew(c)?'<span class="new-pill" title="Added in the last 24 hours">NEW</span>':'';
   const ctype=c.contentType||'';const ctypeBadge=ctype?`<span class="ctype ct-${ctype}">${esc(CTYPE_BADGE[ctype]||ctype)}</span>`:'';
   const funBadge=c.funnelStage?`<span class="fbadge">${esc(c.funnelStage.toUpperCase())}</span>`:'';
+  const chainBadge=c.chainTemplateId?'<span class="chain-badge" title="Repurposing chain — spawns derivatives at its trigger stage">⛓</span>':'';
+  const parent=c.parentId?cards.find(x=>x.id===c.parentId):null;
+  const childLine=c.parentId?`<div class="child-of" title="Derivative">🔗 from ${esc(parent?parent.name:'(deleted)')}</div>`:'';
   const refs=refLinks(c);
   const t=timerInfo(c);const timerEl=t?`<div class="timer ${t.cls}" title="In-Edit SLA: ${slaHours(c)}h">${t.label}</div>`:'';
-  d.innerHTML=`<div class="top"><span class="top-l"><span class="tag ${c.track}">${TRACK_LBL[c.track]}</span>${ctypeBadge}${funBadge}</span><span style="display:flex;gap:4px;align-items:center">${newBadge}${scriptBadge}${c.type==='vsl'?'<span class="vsl-pill">VSL</span>':''}</span></div>${corner}
-    <div class="ttl">${esc(c.name)}</div><div class="hk">${esc(c.hook||'')}</div>${timerEl}
+  d.innerHTML=`<div class="top"><span class="top-l"><span class="tag ${c.track}">${TRACK_LBL[c.track]}</span>${ctypeBadge}${funBadge}</span><span style="display:flex;gap:4px;align-items:center">${newBadge}${chainBadge}${scriptBadge}${c.type==='vsl'?'<span class="vsl-pill">VSL</span>':''}</span></div>${corner}
+    <div class="ttl">${esc(c.name)}</div><div class="hk">${esc(c.hook||'')}</div>${childLine}${timerEl}
     <div class="ft"><span class="own ${ownClass}">${c.owner}</span>${refs}${perf}</div>`;
   d.addEventListener('pointerdown',e=>startDrag(e,c,d));
   return d;
@@ -839,6 +852,18 @@ async function promote(text){
 /* ---- modal ---- */
 function stageOptions(sel,ct){return flowOf(ct).stages.map(s=>`<option value="${s.id}" ${s.id===sel?'selected':''}>${s.name}</option>`).join('');}
 function refreshStageOptions(){const ct=document.getElementById('mCtype').value,cur=document.getElementById('mStage').value,st=flowOf(ct).stages;document.getElementById('mStage').innerHTML=stageOptions(st.some(s=>s.id===cur)?cur:st[0].id,ct);}
+function populateChain(sel){
+  document.getElementById('mChain').innerHTML='<option value="">None</option>'+
+    chainTemplates.map(t=>`<option value="${t.id}" ${String(sel)===String(t.id)?'selected':''}>${esc(t.name)} → ${(t.children||[]).length} at ${t.trigger_stage}</option>`).join('');
+}
+function stageNm(ct,id){return (flowOf(ct).stages.find(s=>s.id===id)||{}).name||id;}
+function renderDerivatives(cardId){
+  const el=document.getElementById('mDerivatives');
+  const kids=cardId?cards.filter(x=>x.parentId===cardId):[];
+  if(!kids.length){el.innerHTML='';return;}
+  el.innerHTML=`<div class="derivs"><div class="derivs-h">Derivatives (${kids.length})</div>`+
+    kids.map(k=>`<div class="deriv" onclick="closeModal();openEdit('${k.id}')"><span class="ctype ct-${k.contentType}">${CTYPE_BADGE[k.contentType]||k.contentType}</span><span class="deriv-nm">${esc(k.name)}</span><span class="deriv-stage">${esc(stageNm(k.contentType,k.stage))}</span></div>`).join('')+`</div>`;
+}
 function openEdit(id){
   editing=id;const c=cards.find(x=>x.id===id);if(!c)return;
   document.getElementById('mTitle').textContent='Edit asset';
@@ -846,6 +871,7 @@ function openEdit(id){
   document.getElementById('mName').value=c.name||'';document.getElementById('mHook').value=c.hook||'';
   document.getElementById('mTrack').value=c.track;document.getElementById('mStage').innerHTML=stageOptions(c.stage,c.contentType);
   document.getElementById('mCtype').value=c.contentType||'video_organic';document.getElementById('mFunnel').value=c.funnelStage||'';document.getElementById('mRef').value=c.referenceUrl||'';
+  populateChain(c.chainTemplateId||'');renderDerivatives(c.id);
   document.getElementById('mOwner').value=c.owner;document.getElementById('mBatch').value=c.batch||'';
   document.getElementById('mRecord').value=c.recordWeek||'';document.getElementById('mLive').value=c.liveDate||'';
   document.getElementById('mFile').value=c.file||'';document.getElementById('mNotes').value=c.notes||'';
@@ -861,6 +887,7 @@ function openNew(){
   document.getElementById('mName').value='';document.getElementById('mHook').value='';
   document.getElementById('mTrack').value='gtm';document.getElementById('mStage').innerHTML=stageOptions('planned','video_organic');
   document.getElementById('mCtype').value='video_organic';document.getElementById('mFunnel').value='';document.getElementById('mRef').value='';
+  populateChain('');renderDerivatives(null);
   document.getElementById('mOwner').value='chris';document.getElementById('mBatch').value='Sprint 1';
   document.getElementById('mRecord').value=WEEK1;document.getElementById('mLive').value='';
   document.getElementById('mFile').value='';document.getElementById('mNotes').value='';
@@ -877,6 +904,7 @@ async function saveCard(){
     contentType:document.getElementById('mCtype').value,
     funnelStage:document.getElementById('mFunnel').value||null,
     referenceUrl:document.getElementById('mRef').value.trim(),
+    chainTemplateId:document.getElementById('mChain').value?Number(document.getElementById('mChain').value):null,
     owner:document.getElementById('mOwner').value,
     batch:document.getElementById('mBatch').value.trim(),
     recordWeek:document.getElementById('mRecord').value||null,
@@ -891,7 +919,10 @@ async function saveCard(){
   renderAll();closeModal();
 }
 async function delCard(){
-  if(editing&&confirm('Delete this asset?')){await api('DELETE','/api/cards/'+editing);cards=cards.filter(x=>x.id!==editing);renderAll();closeModal();}
+  if(!editing)return;
+  const kids=cards.filter(x=>x.parentId===editing);
+  const msg=kids.length?`Delete this card? Its ${kids.length} derivative${kids.length>1?'s':''} will be kept but unlinked (never deleted).`:'Delete this asset?';
+  if(confirm(msg)){await api('DELETE','/api/cards/'+editing);cards=cards.filter(x=>x.id!==editing);cards.forEach(c=>{if(c.parentId===editing)c.parentId=null;});renderAll();closeModal();}
 }
 function closeModal(){document.getElementById('overlay').classList.remove('show');editing=null;}
 document.getElementById('overlay').addEventListener('click',e=>{if(e.target.id==='overlay')closeModal();});

@@ -246,6 +246,33 @@ export async function initDb() {
       `UPDATE cadence_rules SET est_create_min=$2, create_role=$3, est_publish_min=$4, publish_role=$5, serialized=$6
        WHERE content_type=$1 AND create_role IS NULL`, [ct, ec, cr, ep, pr, ser]);
 
+  // ---- v2 Phase 4: repurposing chains (parent/child cards) ----
+  await pool.query(`ALTER TABLE cards ADD COLUMN IF NOT EXISTS parent_id TEXT`);          // cards.id is TEXT
+  await pool.query(`ALTER TABLE cards ADD COLUMN IF NOT EXISTS chain_template_id INTEGER`);
+  await pool.query(`CREATE TABLE IF NOT EXISTS chain_templates (
+    id SERIAL PRIMARY KEY, name TEXT NOT NULL, trigger_stage TEXT NOT NULL, children JSONB NOT NULL
+  )`);
+  const nTpl = +(await pool.query('SELECT COUNT(*) FROM chain_templates')).rows[0].count;
+  if (nTpl === 0) {
+    const templates = [
+      ['Pillar video', 'recorded', [
+        { content_type: 'linkedin_post', funnel_stage: 'mof', title_suffix: 'LinkedIn post' },
+        { content_type: 'video_organic', funnel_stage: 'mof', title_suffix: 'IG cut' },
+        { content_type: 'newsletter_issue', funnel_stage: 'mof', title_suffix: 'newsletter section' }]],
+      ['Lead magnet launch', 'design', [
+        { content_type: 'linkedin_post', funnel_stage: 'tof', title_suffix: 'giveaway post' },
+        { content_type: 'welcome_flow_email', funnel_stage: 'mof', title_suffix: 'welcome flow review' },
+        { content_type: 'landing_page', funnel_stage: 'tof', title_suffix: 'landing page' }]],
+      ['Case study', 'recorded', [
+        { content_type: 'linkedin_post', funnel_stage: 'bof', title_suffix: 'LinkedIn post' },
+        { content_type: 'video_organic', funnel_stage: 'bof', title_suffix: 'IG cut' },
+        { content_type: 'partner_asset', funnel_stage: 'bof', title_suffix: 'partner asset update' }]],
+    ];
+    for (const [name, trig, kids] of templates)
+      await pool.query(`INSERT INTO chain_templates (name, trigger_stage, children) VALUES ($1,$2,$3)`,
+        [name, trig, JSON.stringify(kids)]);
+  }
+
   const seeded = await pool.query(`SELECT v FROM meta WHERE k = 'seeded'`);
   if (seeded.rowCount === 0) {
     await seedCards();
