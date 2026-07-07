@@ -46,6 +46,11 @@
   .tab.active{color:var(--purple);border-bottom-color:var(--purple);background:#fff}
 
   .toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+  .flow-pills{display:flex;gap:8px;margin-bottom:14px}
+  .flow-pill{padding:7px 15px;border-radius:99px;font-size:13px;font-weight:700;cursor:pointer;border:1px solid var(--line);background:#fff;color:var(--muted)}
+  .flow-pill b{font-weight:800;opacity:.65;margin-left:3px}
+  .flow-pill.on{background:var(--purple);color:#fff;border-color:var(--purple)}
+  .flow-pill.on b{opacity:.9}
   .toolbar .grp{display:flex;gap:5px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:10px;padding:5px 8px}
   .toolbar label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:600}
   .chip{padding:5px 11px;border-radius:99px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--line);background:#fff;color:var(--muted)}
@@ -301,6 +306,7 @@
 
   <!-- BOARD -->
   <section id="tab-board" class="hide">
+    <div class="flow-pills" id="flowPills"></div>
     <div class="toolbar">
       <div class="grp">
         <label>Track</label>
@@ -454,7 +460,7 @@
       <div class="fld"><label>Owner</label><select id="mOwner"><option value="chris">Chris</option><option value="leo">Leo</option><option value="sarah">Sarah</option></select></div>
     </div>
     <div class="row3">
-      <div class="fld"><label>Content type</label><select id="mCtype"><option value="ad">Ad</option><option value="vsl">VSL</option><option value="video_organic">Organic video</option><option value="linkedin_post">LinkedIn post</option><option value="lead_magnet">Lead magnet</option><option value="newsletter_issue">Newsletter</option><option value="welcome_flow_email">Welcome email</option><option value="partner_asset">Partner asset</option><option value="landing_page">Landing page</option></select></div>
+      <div class="fld"><label>Content type</label><select id="mCtype" onchange="refreshStageOptions()"><option value="ad">Ad</option><option value="vsl">VSL</option><option value="video_organic">Organic video</option><option value="linkedin_post">LinkedIn post</option><option value="lead_magnet">Lead magnet</option><option value="newsletter_issue">Newsletter</option><option value="welcome_flow_email">Welcome email</option><option value="partner_asset">Partner asset</option><option value="landing_page">Landing page</option></select></div>
       <div class="fld"><label>Funnel stage</label><select id="mFunnel"><option value="">— (MOF default)</option><option value="tof">TOF</option><option value="mof">MOF</option><option value="bof">BOF</option></select></div>
       <div class="fld"><label>Reference URL(s) <span style="text-transform:none;font-weight:500;color:var(--purple)">— inspiration links</span></label><input id="mRef" type="text" placeholder="https://…  (space/comma sep)"></div>
     </div>
@@ -505,16 +511,37 @@
 </div>
 
 <script>
-const STAGES=[
-  {id:'planned',name:'Planned',owner:'Chris / Sarah'},
-  {id:'recorded',name:'Recorded',owner:'Chris'},
-  {id:'shared',name:'Uploaded',owner:'Chris → Leo'},
-  {id:'edit',name:'In edit',owner:'Leo'},
-  {id:'scheduled',name:'Scheduled',owner:'Leo'},
-  {id:'live',name:'Live',owner:'Leo'},
-  {id:'reviewed',name:'Reviewed',owner:'Team'}
-];
-const STAGE_IDX={planned:0,recorded:1,shared:2,edit:3,scheduled:4,live:5,reviewed:6};
+// Three flow families behind pills. Video is unchanged (Leo's daily use).
+const FLOWS={
+  video:{label:'Video',types:['ad','vsl','video_organic'],stages:[
+    {id:'planned',name:'Planned',owner:'Chris / Sarah'},
+    {id:'recorded',name:'Recorded',owner:'Chris'},
+    {id:'shared',name:'Uploaded',owner:'Chris → Leo'},
+    {id:'edit',name:'In edit',owner:'Leo'},
+    {id:'scheduled',name:'Scheduled',owner:'Leo'},
+    {id:'live',name:'Live',owner:'Leo'},
+    {id:'reviewed',name:'Reviewed',owner:'Team'}]},
+  written:{label:'Written',types:['linkedin_post','newsletter_issue','welcome_flow_email','partner_asset','landing_page'],stages:[
+    {id:'planned',name:'Planned',owner:'—'},
+    {id:'drafted',name:'Drafted',owner:'Writer'},
+    {id:'review',name:'In review',owner:'Sarah'},
+    {id:'approved',name:'Approved',owner:'—'},
+    {id:'scheduled',name:'Scheduled',owner:'Sarah'},
+    {id:'live',name:'Live',owner:'—'},
+    {id:'reviewed',name:'Reviewed',owner:'Team'}]},
+  magnet:{label:'Lead magnets',types:['lead_magnet'],stages:[
+    {id:'concept',name:'Concept',owner:'Sarah'},
+    {id:'drafting',name:'Drafting',owner:'Sarah'},
+    {id:'design',name:'Design',owner:'—'},
+    {id:'landing',name:'Landing page',owner:'Sarah'},
+    {id:'wired',name:'Welcome flow wired',owner:'Sarah'},
+    {id:'live',name:'Live',owner:'—'}]},
+};
+const TYPE_FLOW={};Object.entries(FLOWS).forEach(([k,f])=>f.types.forEach(t=>TYPE_FLOW[t]=k));
+function flowOf(ct){return FLOWS[TYPE_FLOW[ct]||'video'];}
+const STAGES=FLOWS.video.stages;                 // weeks/funnel stay video-oriented
+const STAGE_IDX={};STAGES.forEach((s,i)=>STAGE_IDX[s.id]=i);
+let boardFlow='video';
 const TRACK_LBL={gtm:'GTM',cs:'CS-Flex',vsl:'VSL'};
 // v2 content types (9 lanes of the acquisition diagram)
 const CTYPES=[
@@ -599,9 +626,11 @@ function refLinks(c){ // clickable reference/inspiration links; stopPropagation 
   return urls.slice(0,3).map((u,i)=>`<a class="ref-link" href="${esc(u)}" target="_blank" rel="noopener" title="${esc(u)}" onpointerdown="event.stopPropagation()">🔗${urls.length>1?(i+1):''}</a>`).join('');
 }
 function renderBoard(){
+  renderFlowPills();
   const board=document.getElementById('board');board.innerHTML='';
-  STAGES.forEach(st=>{
-    const list=cards.filter(c=>c.stage===st.id&&!c.backlogged);
+  const flowCards=cards.filter(c=>!c.backlogged&&(TYPE_FLOW[c.contentType]||'video')===boardFlow);
+  FLOWS[boardFlow].stages.forEach(st=>{
+    const list=flowCards.filter(c=>c.stage===st.id);
     const visible=list.filter(c=>filters.track.includes(c.track)&&filters.owner.includes(c.owner)&&filters.ctype.includes(c.contentType));
     const col=document.createElement('div');col.className='col';col.dataset.stage=st.id;
     col.innerHTML=`<div class="col-h"><div><div class="name">${st.name}</div><div class="owner">${st.owner}</div></div><div class="cnt">${list.length}</div></div>`;
@@ -661,7 +690,7 @@ async function onDragUp(e){
   if(col){
     const stage=col.dataset.stage,card=d.card;
     if(stage&&card.stage!==stage){
-      const patch={stage};const owner=autoOwner(stage);if(owner)patch.owner=owner;
+      const patch={stage};const owner=(TYPE_FLOW[card.contentType]||'video')==='video'?autoOwner(stage):null;if(owner)patch.owner=owner;
       Object.assign(card,patch);
       if((stage==='live'||stage==='reviewed')&&!card.liveDate)card.liveDate=todayISO();
       renderBoard();updateSprint();
@@ -808,13 +837,14 @@ async function promote(text){
 }
 
 /* ---- modal ---- */
-function stageOptions(sel){return STAGES.map(s=>`<option value="${s.id}" ${s.id===sel?'selected':''}>${s.name}</option>`).join('');}
+function stageOptions(sel,ct){return flowOf(ct).stages.map(s=>`<option value="${s.id}" ${s.id===sel?'selected':''}>${s.name}</option>`).join('');}
+function refreshStageOptions(){const ct=document.getElementById('mCtype').value,cur=document.getElementById('mStage').value,st=flowOf(ct).stages;document.getElementById('mStage').innerHTML=stageOptions(st.some(s=>s.id===cur)?cur:st[0].id,ct);}
 function openEdit(id){
   editing=id;const c=cards.find(x=>x.id===id);if(!c)return;
   document.getElementById('mTitle').textContent='Edit asset';
   document.getElementById('mSub').textContent=(c.batch||'')+(c.file?(' · '+c.file):'');
   document.getElementById('mName').value=c.name||'';document.getElementById('mHook').value=c.hook||'';
-  document.getElementById('mTrack').value=c.track;document.getElementById('mStage').innerHTML=stageOptions(c.stage);
+  document.getElementById('mTrack').value=c.track;document.getElementById('mStage').innerHTML=stageOptions(c.stage,c.contentType);
   document.getElementById('mCtype').value=c.contentType||'video_organic';document.getElementById('mFunnel').value=c.funnelStage||'';document.getElementById('mRef').value=c.referenceUrl||'';
   document.getElementById('mOwner').value=c.owner;document.getElementById('mBatch').value=c.batch||'';
   document.getElementById('mRecord').value=c.recordWeek||'';document.getElementById('mLive').value=c.liveDate||'';
@@ -829,7 +859,7 @@ function openNew(){
   editing=null;
   document.getElementById('mTitle').textContent='New asset';document.getElementById('mSub').textContent='';
   document.getElementById('mName').value='';document.getElementById('mHook').value='';
-  document.getElementById('mTrack').value='gtm';document.getElementById('mStage').innerHTML=stageOptions('planned');
+  document.getElementById('mTrack').value='gtm';document.getElementById('mStage').innerHTML=stageOptions('planned','video_organic');
   document.getElementById('mCtype').value='video_organic';document.getElementById('mFunnel').value='';document.getElementById('mRef').value='';
   document.getElementById('mOwner').value='chris';document.getElementById('mBatch').value='Sprint 1';
   document.getElementById('mRecord').value=WEEK1;document.getElementById('mLive').value='';
@@ -879,6 +909,14 @@ function renderTypeChips(){
   const el=document.getElementById('typeChips');if(!el)return;
   el.innerHTML=CTYPES.map(c=>`<span class="chip ${filters.ctype.includes(c.v)?'on':''}" data-f="ctype" data-v="${c.v}" onclick="toggleF(this)">${c.badge}</span>`).join('');
 }
+function renderFlowPills(){
+  const el=document.getElementById('flowPills');if(!el)return;
+  el.innerHTML=Object.entries(FLOWS).map(([k,f])=>{
+    const n=cards.filter(c=>!c.backlogged&&(TYPE_FLOW[c.contentType]||'video')===k).length;
+    return `<span class="flow-pill ${k===boardFlow?'on':''}" onclick="setBoardFlow('${k}')">${f.label} <b>${n}</b></span>`;
+  }).join('');
+}
+function setBoardFlow(k){boardFlow=k;renderFlowPills();renderBoard();}
 function filterByType(v){filters.ctype=[v];renderTypeChips();switchTab('board');}
 async function setCadence(ct,patch){
   try{await api('PUT','/api/cadence/'+ct,patch);}catch(e){}

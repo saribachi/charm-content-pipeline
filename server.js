@@ -94,7 +94,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK_URL || '';
 const BOARD_URL = process.env.APP_URL || 'https://content.hirecharm.com';
 const SLACK_DEBOUNCE_MS = Number(process.env.SLACK_DEBOUNCE_MS || 20000);
-const STAGE_LABEL = { planned: 'Planned', recorded: 'Recorded', shared: 'Uploaded', edit: 'In edit', scheduled: 'Scheduled', live: 'Live', reviewed: 'Reviewed' };
+const STAGE_LABEL = { planned: 'Planned', recorded: 'Recorded', shared: 'Uploaded', edit: 'In edit', drafted: 'Drafted', review: 'In review', approved: 'Approved', concept: 'Concept', drafting: 'Drafting', design: 'Design', landing: 'Landing page', wired: 'Welcome flow wired', scheduled: 'Scheduled', live: 'Live', reviewed: 'Reviewed' };
 const TRACK_LABEL = { gtm: 'GTM', cs: 'CS-Flex', vsl: 'VSL' };
 // Leo's handoff: when a card reaches "Uploaded" he gets @-tagged with a link to the right Drive folder.
 const LEO_SLACK_ID = process.env.LEO_SLACK_ID || 'U09VDPB6WSJ'; // leogzd
