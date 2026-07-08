@@ -95,9 +95,24 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK_URL || '';
 const BOARD_URL = process.env.APP_URL || 'https://content.hirecharm.com';
 const SLACK_DEBOUNCE_MS = Number(process.env.SLACK_DEBOUNCE_MS || 20000);
 const STAGE_LABEL = { planned: 'Planned', recorded: 'Recorded', shared: 'Uploaded', edit: 'In edit', drafted: 'Drafted', review: 'In review', approved: 'Approved', concept: 'Concept', drafting: 'Drafting', design: 'Design', landing: 'Landing page', wired: 'Welcome flow wired', scheduled: 'Scheduled', live: 'Live', reviewed: 'Reviewed' };
+// Video's "scheduled" id displays as "Ready for review" (editor -> Chris/Sarah handoff).
+function stageLabel(contentType, id) {
+  if (VIDEO_TYPES.includes(contentType) && id === 'scheduled') return 'Ready for review';
+  return STAGE_LABEL[id] || id;
+}
+function notifyReviewReady(card) {
+  if (!SLACK_WEBHOOK) return;
+  const chris = CHRIS_SLACK_ID ? `<@${CHRIS_SLACK_ID}>` : '@Chris';
+  const sarah = SARAH_SLACK_ID ? `<@${SARAH_SLACK_ID}>` : '@Sarah';
+  const link = card.reviewUrl ? ` — <${card.reviewUrl}|open the file>` : '';
+  postSlack(`:eyes: ${chris} ${sarah} *${card.name}* is *ready for review*${link}. <${BOARD_URL}|Open the board →>`);
+}
 const TRACK_LABEL = { gtm: 'GTM', cs: 'CS-Flex', vsl: 'VSL' };
 // Leo's handoff: when a card reaches "Uploaded" he gets @-tagged with a link to the right Drive folder.
 const LEO_SLACK_ID = process.env.LEO_SLACK_ID || 'U09VDPB6WSJ'; // leogzd
+const CHRIS_SLACK_ID = process.env.CHRIS_SLACK_ID || 'UKZ9YEQ1J';
+const SARAH_SLACK_ID = process.env.SARAH_SLACK_ID || 'U0B77HHHPPX';
+const VIDEO_TYPES = ['ad', 'vsl', 'video_organic'];
 const DRIVE_FOLDERS = {
   gtm: 'https://drive.google.com/drive/folders/11M9X1lf1sPPC9VyVxNjDbIeu8gG0Cx1z',
   cs: 'https://drive.google.com/drive/folders/1X_jRhwO8vuDD91xxJUmVa0fU0f6ZG00t',
@@ -192,7 +207,7 @@ function rowToCard(r) {
     recordWeek: iso(r.record_week), liveDate: iso(r.live_date),
     perf: { hold: r.perf_hold || '', ctr: r.perf_ctr || '', cpl: r.perf_cpl || '' },
     position: r.position, backlogged: !!r.backlogged,
-    contentType: r.content_type, referenceUrl: r.reference_url, funnelStage: r.funnel_stage,
+    contentType: r.content_type, referenceUrl: r.reference_url, reviewUrl: r.review_url, funnelStage: r.funnel_stage,
     editStartedAt: r.edit_started_at, sprintId: r.sprint_id,
     parentId: r.parent_id, chainTemplateId: r.chain_template_id,
     createdAt: r.created_at, updatedAt: r.updated_at,
@@ -204,7 +219,7 @@ const FIELDS = {
   owner: 'owner', batch: 'batch', file: 'file', notes: 'notes', script: 'script',
   recordWeek: 'record_week', liveDate: 'live_date', backlogged: 'backlogged',
   contentType: 'content_type', referenceUrl: 'reference_url', funnelStage: 'funnel_stage',
-  chainTemplateId: 'chain_template_id',
+  chainTemplateId: 'chain_template_id', reviewUrl: 'review_url',
 };
 
 app.get('/api/state', async (_req, res) => {
@@ -335,8 +350,11 @@ app.put('/api/cards/:id', async (req, res) => {
       if (card.stage === 'shared') {
         // Reached "Uploaded" → Leo's handoff (tags him + Drive folder), not the generic digest.
         notifyHandoff({ name: card.name, track: card.track });
+      } else if (card.stage === 'scheduled' && VIDEO_TYPES.includes(card.contentType)) {
+        // Video "Ready for review" → tag Chris + Sarah with the editor's file link.
+        notifyReviewReady(card);
       } else {
-        notifyBoard(`:twisted_rightwards_arrows: *${card.name}* moved: ${STAGE_LABEL[before.stage] || before.stage} → *${STAGE_LABEL[card.stage] || card.stage}*`);
+        notifyBoard(`:twisted_rightwards_arrows: *${card.name}* moved: ${stageLabel(card.contentType, before.stage)} → *${stageLabel(card.contentType, card.stage)}*`);
       }
     } else if (before && !!before.backlogged !== !!card.backlogged) {
       // Backlog park/restore is intentionally silent (no Slack alert).
