@@ -703,6 +703,11 @@ async function onDragUp(e){
     const stage=col.dataset.stage,card=d.card;
     if(stage&&card.stage!==stage){
       const patch={stage};const owner=(TYPE_FLOW[card.contentType]||'video')==='video'?autoOwner(stage):null;if(owner)patch.owner=owner;
+      // Moving a video into "Ready for review": offer to attach the finished file link. Optional — blank skips, never blocks the move.
+      if(stage==='scheduled'&&(TYPE_FLOW[card.contentType]||'video')==='video'&&!(card.reviewUrl&&card.reviewUrl.trim())){
+        const url=prompt('Paste the finished file link for Chris + Sarah to review.\n(Optional — leave blank to move without a link.)','');
+        if(url&&url.trim()){patch.reviewUrl=url.trim();card.reviewUrl=url.trim();}
+      }
       Object.assign(card,patch);
       if((stage==='live'||stage==='reviewed')&&!card.liveDate)card.liveDate=todayISO();
       renderBoard();updateSprint();
