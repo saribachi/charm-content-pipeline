@@ -100,8 +100,8 @@
   .ct-ad{background:#ea7317} .ct-vsl{background:var(--vsl)}
   .ct-video_organic{background:linear-gradient(45deg,#e0218a,#8733ed)}
   .ct-linkedin_post{background:#0a66c2} .ct-lead_magnet{background:#16a34a}
-  .ct-newsletter_issue{background:#d97706} .ct-welcome_flow_email{background:#f59e0b}
-  .ct-partner_asset{background:#475569} .ct-landing_page{background:#db2777}
+  .ct-newsletter_issue{background:#d97706}
+  .ct-partner_asset{background:#475569}
   .fbadge{font-size:8px;font-weight:800;letter-spacing:.4px;padding:2px 5px;border-radius:5px;background:var(--purple-l);color:var(--purple-d)}
   .chain-badge{font-size:12px;line-height:1}
   .child-of{font-size:10px;color:var(--purple);font-weight:600;margin-top:4px}
@@ -436,7 +436,7 @@
         <ul class="rules">
           <li><b>How to use it:</b> open a card, pick a chain under <b>Repurposing chain</b>, save. That's the only step.</li>
           <li><b>What happens:</b> when the card first hits <b>Recorded &amp; shared with editor</b> (or Design, for lead magnets), the derivatives appear in Planned with a 🔗 link back to the parent, and Slack posts one summary.</li>
-          <li><b>The chains:</b> Pillar video &rarr; LinkedIn post + IG cut + newsletter section &middot; Case study &rarr; LinkedIn post + IG cut + partner asset &middot; Lead magnet launch &rarr; giveaway post + welcome email + landing page.</li>
+          <li><b>The chains:</b> Pillar video &rarr; LinkedIn post + IG cut + newsletter section &middot; Case study &rarr; LinkedIn post + IG cut + partner asset &middot; Lead magnet launch &rarr; giveaway post.</li>
           <li><b>Opt-in:</b> no chain means nothing changes and the card behaves normally. Use it only when you actually plan to repurpose that piece.</li>
           <li>The parent shows a &#9939; badge + a Derivatives list; children show "from [parent]". Deleting a parent keeps the children, just unlinked.</li>
         </ul>
@@ -481,7 +481,7 @@
       <div class="fld"><label>Owner</label><select id="mOwner"><option value="chris">Chris</option><option value="leo">Leo</option><option value="sarah">Sarah</option></select></div>
     </div>
     <div class="row3">
-      <div class="fld"><label>Content type</label><select id="mCtype" onchange="refreshStageOptions()"><option value="ad">Ad</option><option value="vsl">VSL</option><option value="video_organic">Organic video</option><option value="linkedin_post">LinkedIn post</option><option value="lead_magnet">Lead magnet</option><option value="newsletter_issue">Newsletter</option><option value="welcome_flow_email">Welcome email</option><option value="partner_asset">Partner asset</option><option value="landing_page">Landing page</option></select></div>
+      <div class="fld"><label>Content type</label><select id="mCtype" onchange="refreshStageOptions()"><option value="ad">Ad</option><option value="vsl">VSL</option><option value="video_organic">Organic video</option><option value="linkedin_post">LinkedIn post</option><option value="lead_magnet">Lead magnet</option><option value="newsletter_issue">Newsletter</option><option value="partner_asset">Partner asset</option></select></div>
       <div class="fld"><label>Funnel stage</label><select id="mFunnel"><option value="">— (MOF default)</option><option value="tof">TOF</option><option value="mof">MOF</option><option value="bof">BOF</option></select></div>
       <div class="fld"><label>Reference URL(s) <span style="text-transform:none;font-weight:500;color:var(--purple)">— inspiration links</span></label><input id="mRef" type="text" placeholder="https://…  (space/comma sep)"></div>
     </div>
@@ -544,7 +544,7 @@ const FLOWS={
     {id:'scheduled',name:'Ready for review',owner:'Chris / Sarah'},
     {id:'live',name:'Live',owner:'Leo'},
     {id:'reviewed',name:'Reviewed',owner:'Team'}]},
-  written:{label:'Written',types:['linkedin_post','newsletter_issue','welcome_flow_email','partner_asset','landing_page'],stages:[
+  written:{label:'Written',types:['linkedin_post','newsletter_issue','partner_asset'],stages:[
     {id:'planned',name:'Planned',owner:'—'},
     {id:'drafted',name:'Drafted',owner:'Writer'},
     {id:'review',name:'In review',owner:'Sarah'},
@@ -574,9 +574,7 @@ const CTYPES=[
   {v:'linkedin_post',label:'LinkedIn post',badge:'LinkedIn'},
   {v:'lead_magnet',label:'Lead magnet',badge:'Magnet'},
   {v:'newsletter_issue',label:'Newsletter',badge:'Newsletter'},
-  {v:'welcome_flow_email',label:'Welcome email',badge:'Welcome'},
   {v:'partner_asset',label:'Partner asset',badge:'Partner'},
-  {v:'landing_page',label:'Landing page',badge:'Landing'},
 ];
 const CTYPE_LABEL=Object.fromEntries(CTYPES.map(c=>[c.v,c.label]));
 const CTYPE_BADGE=Object.fromEntries(CTYPES.map(c=>[c.v,c.badge]));

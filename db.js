@@ -262,9 +262,7 @@ export async function initDb() {
         { content_type: 'video_organic', funnel_stage: 'mof', title_suffix: 'IG cut' },
         { content_type: 'newsletter_issue', funnel_stage: 'mof', title_suffix: 'newsletter section' }]],
       ['Lead magnet launch', 'design', [
-        { content_type: 'linkedin_post', funnel_stage: 'tof', title_suffix: 'giveaway post' },
-        { content_type: 'welcome_flow_email', funnel_stage: 'mof', title_suffix: 'welcome flow review' },
-        { content_type: 'landing_page', funnel_stage: 'tof', title_suffix: 'landing page' }]],
+        { content_type: 'linkedin_post', funnel_stage: 'tof', title_suffix: 'giveaway post' }]],
       ['Case study', 'recorded', [
         { content_type: 'linkedin_post', funnel_stage: 'bof', title_suffix: 'LinkedIn post' },
         { content_type: 'video_organic', funnel_stage: 'bof', title_suffix: 'IG cut' },
@@ -278,6 +276,9 @@ export async function initDb() {
   // Consolidate the video "Recorded" + "Uploaded" stages into one "Recorded & shared with editor" (id 'shared').
   await pool.query(`UPDATE cards SET stage='shared' WHERE stage='recorded'`);
   await pool.query(`UPDATE chain_templates SET trigger_stage='shared' WHERE trigger_stage='recorded'`);
+  // Trim removed content types (welcome_flow_email, landing_page): deactivate their cadence lanes and drop from the lead-magnet chain.
+  await pool.query(`UPDATE cadence_rules SET active=false WHERE content_type IN ('welcome_flow_email','landing_page')`);
+  await pool.query(`UPDATE chain_templates SET children='[{"content_type":"linkedin_post","funnel_stage":"tof","title_suffix":"giveaway post"}]'::jsonb WHERE name='Lead magnet launch'`);
 
   const seeded = await pool.query(`SELECT v FROM meta WHERE k = 'seeded'`);
   if (seeded.rowCount === 0) {
