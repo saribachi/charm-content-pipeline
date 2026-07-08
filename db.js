@@ -275,6 +275,10 @@ export async function initDb() {
         [name, trig, JSON.stringify(kids)]);
   }
 
+  // Consolidate the video "Recorded" + "Uploaded" stages into one "Recorded & shared with editor" (id 'shared').
+  await pool.query(`UPDATE cards SET stage='shared' WHERE stage='recorded'`);
+  await pool.query(`UPDATE chain_templates SET trigger_stage='shared' WHERE trigger_stage='recorded'`);
+
   const seeded = await pool.query(`SELECT v FROM meta WHERE k = 'seeded'`);
   if (seeded.rowCount === 0) {
     await seedCards();

@@ -94,7 +94,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK_URL || '';
 const BOARD_URL = process.env.APP_URL || 'https://content.hirecharm.com';
 const SLACK_DEBOUNCE_MS = Number(process.env.SLACK_DEBOUNCE_MS || 20000);
-const STAGE_LABEL = { planned: 'Planned', recorded: 'Recorded', shared: 'Uploaded', edit: 'In edit', drafted: 'Drafted', review: 'In review', approved: 'Approved', concept: 'Concept', drafting: 'Drafting', design: 'Design', landing: 'Landing page', wired: 'Welcome flow wired', scheduled: 'Scheduled', live: 'Live', reviewed: 'Reviewed' };
+const STAGE_LABEL = { planned: 'Planned', recorded: 'Recorded', shared: 'Recorded & shared with editor', edit: 'In edit', drafted: 'Drafted', review: 'In review', approved: 'Approved', concept: 'Concept', drafting: 'Drafting', design: 'Design', landing: 'Landing page', wired: 'Welcome flow wired', scheduled: 'Scheduled', live: 'Live', reviewed: 'Reviewed' };
 // Video's "scheduled" id displays as "Ready for review" (editor -> Chris/Sarah handoff).
 function stageLabel(contentType, id) {
   if (VIDEO_TYPES.includes(contentType) && id === 'scheduled') return 'Ready for review';
