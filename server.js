@@ -210,6 +210,7 @@ function rowToCard(r) {
     contentType: r.content_type, referenceUrl: r.reference_url, reviewUrl: r.review_url, funnelStage: r.funnel_stage,
     editStartedAt: r.edit_started_at, sprintId: r.sprint_id,
     parentId: r.parent_id, chainTemplateId: r.chain_template_id,
+    magnetFormat: r.magnet_format, targetIcp: r.target_icp, giveawayPostId: r.giveaway_post_id, optinCount: r.optin_count,
     createdAt: r.created_at, updatedAt: r.updated_at,
   };
 }
@@ -220,6 +221,7 @@ const FIELDS = {
   recordWeek: 'record_week', liveDate: 'live_date', backlogged: 'backlogged',
   contentType: 'content_type', referenceUrl: 'reference_url', funnelStage: 'funnel_stage',
   chainTemplateId: 'chain_template_id', reviewUrl: 'review_url',
+  magnetFormat: 'magnet_format', targetIcp: 'target_icp', optinCount: 'optin_count',
 };
 
 app.get('/api/state', async (_req, res) => {
@@ -301,14 +303,15 @@ app.post('/api/cards', async (req, res) => {
     const b = req.body || {};
     const id = 'n' + Date.now() + Math.floor(Math.random() * 1000);
     const r = await pool.query(
-      `INSERT INTO cards (id, name, hook, track, type, stage, owner, batch, file, notes, script, record_week, content_type, reference_url, chain_template_id, position)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,
+      `INSERT INTO cards (id, name, hook, track, type, stage, owner, batch, file, notes, script, record_week, content_type, reference_url, chain_template_id, magnet_format, target_icp, position)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,
          (SELECT COALESCE(MAX(position),0)+1 FROM cards))
        RETURNING *`,
       [id, b.name || 'Untitled', b.hook || '', b.track || 'gtm',
        b.type || (b.track === 'vsl' ? 'vsl' : 'ad'), b.stage || 'planned',
        b.owner || 'chris', b.batch || '', b.file || '', b.notes || '', b.script || '',
-       b.recordWeek || null, b.contentType || 'video_organic', b.referenceUrl || '', b.chainTemplateId || null]
+       b.recordWeek || null, b.contentType || 'video_organic', b.referenceUrl || '', b.chainTemplateId || null,
+       b.magnetFormat || null, b.targetIcp || null]
     );
     const card = rowToCard(r.rows[0]);
     notifyBoard(`:new: *New card added:* ${card.name} (${TRACK_LABEL[card.track] || card.track})`);
@@ -378,13 +381,17 @@ app.put('/api/cards/:id', async (req, res) => {
           const kids = Array.isArray(tpl.children) ? tpl.children : [];
           let k = 0;
           for (const ch of kids) {
+            const cid = 'dv' + card.id + '_' + (k++);
             await pool.query(
               `INSERT INTO cards (id, name, hook, track, type, stage, owner, batch, content_type, funnel_stage, parent_id, position)
                VALUES ($1,$2,$3,$4,$5,'planned',$6,$7,$8,$9,$10,(SELECT COALESCE(MAX(position),0)+1 FROM cards))`,
-              ['dv' + card.id + '_' + (k++), `${card.name} — ${ch.title_suffix || ch.content_type}`,
+              [cid, `${card.name} — ${ch.title_suffix || ch.content_type}`,
                `Derived from: ${card.name}`, card.track,
                ch.content_type === 'ad' ? 'ad' : ch.content_type === 'vsl' ? 'vsl' : 'organic',
                card.owner || 'chris', card.batch || '', ch.content_type, ch.funnel_stage || null, card.id]);
+            // Link a lead magnet to its auto-created giveaway post.
+            if (card.contentType === 'lead_magnet' && ch.content_type === 'linkedin_post')
+              await pool.query(`UPDATE cards SET giveaway_post_id=$1 WHERE id=$2`, [cid, card.id]);
           }
           if (kids.length) notifyBoard(`:link: *${card.name}* spawned ${kids.length} derivative${kids.length !== 1 ? 's' : ''} (chain). <${BOARD_URL}|Open the board →>`);
         }

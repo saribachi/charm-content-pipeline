@@ -280,6 +280,30 @@ export async function initDb() {
   await pool.query(`UPDATE cadence_rules SET active=false WHERE content_type IN ('welcome_flow_email','landing_page')`);
   await pool.query(`UPDATE chain_templates SET children='[{"content_type":"linkedin_post","funnel_stage":"tof","title_suffix":"giveaway post"}]'::jsonb WHERE name='Lead magnet launch'`);
 
+  // ---- v2 Phase 5: lead-magnet fields + seed 6 concept cards ----
+  await pool.query(`ALTER TABLE cards ADD COLUMN IF NOT EXISTS magnet_format TEXT`);
+  await pool.query(`ALTER TABLE cards ADD COLUMN IF NOT EXISTS target_icp TEXT`);
+  await pool.query(`ALTER TABLE cards ADD COLUMN IF NOT EXISTS giveaway_post_id TEXT`);
+  await pool.query(`ALTER TABLE cards ADD COLUMN IF NOT EXISTS optin_count INTEGER`);
+  const nMag = +(await pool.query(`SELECT COUNT(*) FROM cards WHERE content_type='lead_magnet'`)).rows[0].count;
+  if (nMag === 0) {
+    const magnets = [
+      ['Cold email teardown template pack', 'template'],
+      ['Deliverability / domain health checklist', 'checklist'],
+      ['Clay signal playbook', 'playbook'],
+      ['Bowtie framework doc', 'doc'],
+      ['Flex CS SOP pack', 'doc'],
+      ['Pricing / scoping calculator', 'calculator'],
+    ];
+    let i = 0;
+    for (const [name, fmt] of magnets) {
+      await pool.query(
+        `INSERT INTO cards (id, name, hook, track, type, stage, owner, content_type, magnet_format, position)
+         VALUES ($1,$2,$3,'gtm','organic','concept','sarah','lead_magnet',$4,(SELECT COALESCE(MAX(position),0)+1 FROM cards))`,
+        ['lm' + (i++), name, 'Lead magnet concept. Rename + set the target ICP it captures.', fmt]);
+    }
+  }
+
   const seeded = await pool.query(`SELECT v FROM meta WHERE k = 'seeded'`);
   if (seeded.rowCount === 0) {
     await seedCards();

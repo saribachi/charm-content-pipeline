@@ -105,6 +105,11 @@
   .fbadge{font-size:8px;font-weight:800;letter-spacing:.4px;padding:2px 5px;border-radius:5px;background:var(--purple-l);color:var(--purple-d)}
   .chain-badge{font-size:12px;line-height:1}
   .child-of{font-size:10px;color:var(--purple);font-weight:600;margin-top:4px}
+  .magnet-line{font-size:10.5px;color:var(--muted);margin-top:5px;line-height:1.4}
+  .magnet-line .mfmt{font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;color:#166534;background:#dcfce7;padding:1px 5px;border-radius:4px;margin-right:4px}
+  .magnet-line b{color:var(--ink)}
+  .board-empty{flex:1;width:100%;text-align:center;padding:46px 20px;color:var(--muted)}
+  .board-empty p{font-size:14px;font-weight:600;color:var(--ink);margin:0 auto 14px;max-width:420px}
   .derivs{margin:10px 0 2px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--bg)}
   .derivs-h{font-size:11px;text-transform:uppercase;letter-spacing:.5px;font-weight:800;color:var(--muted);margin-bottom:7px}
   .deriv{display:flex;align-items:center;gap:8px;padding:5px 0;cursor:pointer;font-size:12.5px;color:var(--ink)}
@@ -481,7 +486,7 @@
       <div class="fld"><label>Owner</label><select id="mOwner"><option value="chris">Chris</option><option value="leo">Leo</option><option value="sarah">Sarah</option></select></div>
     </div>
     <div class="row3">
-      <div class="fld"><label>Content type</label><select id="mCtype" onchange="refreshStageOptions()"><option value="ad">Ad</option><option value="vsl">VSL</option><option value="video_organic">Organic video</option><option value="linkedin_post">LinkedIn post</option><option value="lead_magnet">Lead magnet</option><option value="newsletter_issue">Newsletter</option><option value="partner_asset">Partner asset</option></select></div>
+      <div class="fld"><label>Content type</label><select id="mCtype" onchange="refreshStageOptions();toggleMagnetFields()"><option value="ad">Ad</option><option value="vsl">VSL</option><option value="video_organic">Organic video</option><option value="linkedin_post">LinkedIn post</option><option value="lead_magnet">Lead magnet</option><option value="newsletter_issue">Newsletter</option><option value="partner_asset">Partner asset</option></select></div>
       <div class="fld"><label>Funnel stage</label><select id="mFunnel"><option value="">— (MOF default)</option><option value="tof">TOF</option><option value="mof">MOF</option><option value="bof">BOF</option></select></div>
       <div class="fld"><label>Reference URL(s) <span style="text-transform:none;font-weight:500;color:var(--purple)">— inspiration links</span></label><input id="mRef" type="text" placeholder="https://…  (space/comma sep)"></div>
     </div>
@@ -496,6 +501,13 @@
     <div class="fld"><label>Review file link <span style="text-transform:none;font-weight:500;color:var(--purple)">— editor pastes the finished file here for Chris + Sarah to review</span></label><input id="mReview" type="text" placeholder="https://drive.google.com/…  or a Frame.io link"></div>
     <div class="fld"><label>Notes</label><textarea id="mNotes" placeholder="Hook variants, blockers, cleared brands, etc."></textarea></div>
     <div class="fld"><label>Script <span style="text-transform:none;font-weight:500;color:var(--purple)">— drop the full script here for Chris</span></label><textarea id="mScript" placeholder="Paste the full on-camera script / VO here. Chris reads from this." style="min-height:160px;font-size:13px;line-height:1.5"></textarea></div>
+    <div id="mMagnetFields" style="display:none">
+      <div class="row3">
+        <div class="fld"><label>Magnet format</label><select id="mMagnetFormat"><option value="">—</option><option value="checklist">Checklist</option><option value="template">Template</option><option value="calculator">Calculator</option><option value="playbook">Playbook</option><option value="doc">Doc</option><option value="video_course">Video course</option></select></div>
+        <div class="fld" style="grid-column:span 2"><label>Target ICP <span style="text-transform:none;font-weight:500;color:var(--purple)">— which segment this captures</span></label><input id="mTargetIcp" type="text" placeholder="e.g. B2B agencies running cold outbound"></div>
+      </div>
+      <div class="fld"><label>Opt-ins <span style="text-transform:none;font-weight:500;color:var(--purple)">— filled at Thursday review</span></label><input id="mOptin" type="number" min="0" placeholder="0"></div>
+    </div>
     <div class="perf-box">
       <div class="ph">Performance (fill at Thursday review)</div>
       <div class="row3">
@@ -650,6 +662,10 @@ function renderBoard(){
   renderFlowPills();
   const board=document.getElementById('board');board.innerHTML='';
   const flowCards=cards.filter(c=>!c.backlogged&&(TYPE_FLOW[c.contentType]||'video')===boardFlow);
+  if(!flowCards.length){
+    const msg=boardFlow==='magnet'?'No magnets in production. The TOF layer converts nothing without them.':boardFlow==='written'?'No written content yet. Add a newsletter, LinkedIn post, or partner asset.':'Nothing here yet.';
+    board.innerHTML=`<div class="board-empty"><p>${msg}</p><button class="btn" onclick="openNew()">+ New card</button></div>`;updateSprint();return;
+  }
   FLOWS[boardFlow].stages.forEach(st=>{
     const list=flowCards.filter(c=>c.stage===st.id);
     const visible=list.filter(c=>filters.track.includes(c.track)&&filters.owner.includes(c.owner)&&filters.ctype.includes(c.contentType));
@@ -740,11 +756,12 @@ function cardEl(c){
   const chainBadge=c.chainTemplateId?'<span class="chain-badge" title="Repurposing chain — spawns derivatives at its trigger stage">⛓</span>':'';
   const parent=c.parentId?cards.find(x=>x.id===c.parentId):null;
   const childLine=c.parentId?`<div class="child-of" title="Derivative">🔗 from ${esc(parent?parent.name:'(deleted)')}</div>`:'';
+  const magnetLine=c.contentType==='lead_magnet'?`<div class="magnet-line">${c.magnetFormat?`<span class="mfmt">${esc(c.magnetFormat)}</span>`:''}${c.targetIcp?` ${esc(c.targetIcp)}`:''}${c.optinCount!=null?` · <b>${c.optinCount}</b> opt-ins`:''}</div>`:'';
   const refs=refLinks(c);
   const reviewLine=(c.reviewUrl&&/^https?:\/\//i.test(c.reviewUrl))?`<a class="review-file" href="${esc(c.reviewUrl)}" target="_blank" rel="noopener" title="Finished file for review" onpointerdown="event.stopPropagation()">🎬 Review file →</a>`:'';
   const t=timerInfo(c);const timerEl=t?`<div class="timer ${t.cls}" title="In-Edit SLA: ${slaHours(c)}h">${t.label}</div>`:'';
   d.innerHTML=`<div class="top"><span class="top-l"><span class="tag ${c.track}">${TRACK_LBL[c.track]}</span>${ctypeBadge}${funBadge}</span><span style="display:flex;gap:4px;align-items:center">${newBadge}${chainBadge}${scriptBadge}${c.type==='vsl'?'<span class="vsl-pill">VSL</span>':''}</span></div>${corner}
-    <div class="ttl">${esc(c.name)}</div>${reviewLine}<div class="hk">${esc(c.hook||'')}</div>${childLine}${timerEl}
+    <div class="ttl">${esc(c.name)}</div>${reviewLine}<div class="hk">${esc(c.hook||'')}</div>${magnetLine}${childLine}${timerEl}
     <div class="ft"><span class="own ${ownClass}">${c.owner}</span>${refs}${perf}</div>`;
   d.addEventListener('pointerdown',e=>startDrag(e,c,d));
   return d;
@@ -869,6 +886,7 @@ async function promote(text){
 /* ---- modal ---- */
 function stageOptions(sel,ct){return flowOf(ct).stages.map(s=>`<option value="${s.id}" ${s.id===sel?'selected':''}>${s.name}</option>`).join('');}
 function refreshStageOptions(){const ct=document.getElementById('mCtype').value,cur=document.getElementById('mStage').value,st=flowOf(ct).stages;document.getElementById('mStage').innerHTML=stageOptions(st.some(s=>s.id===cur)?cur:st[0].id,ct);}
+function toggleMagnetFields(){const isMag=document.getElementById('mCtype').value==='lead_magnet';document.getElementById('mMagnetFields').style.display=isMag?'':'none';const pb=document.querySelector('.perf-box');if(pb)pb.style.display=isMag?'none':'';}
 function populateChain(sel){
   document.getElementById('mChain').innerHTML='<option value="">None</option>'+
     chainTemplates.map(t=>`<option value="${t.id}" ${String(sel)===String(t.id)?'selected':''}>${esc(t.name)} → ${(t.children||[]).length} at ${t.trigger_stage}</option>`).join('');
@@ -890,6 +908,7 @@ function openEdit(id){
   document.getElementById('mCtype').value=c.contentType||'video_organic';document.getElementById('mFunnel').value=c.funnelStage||'';document.getElementById('mRef').value=c.referenceUrl||'';
   document.getElementById('mReview').value=c.reviewUrl||'';
   populateChain(c.chainTemplateId||'');renderDerivatives(c.id);
+  document.getElementById('mMagnetFormat').value=c.magnetFormat||'';document.getElementById('mTargetIcp').value=c.targetIcp||'';document.getElementById('mOptin').value=(c.optinCount!=null?c.optinCount:'');toggleMagnetFields();
   document.getElementById('mOwner').value=c.owner;document.getElementById('mBatch').value=c.batch||'';
   document.getElementById('mRecord').value=c.recordWeek||'';document.getElementById('mLive').value=c.liveDate||'';
   document.getElementById('mFile').value=c.file||'';document.getElementById('mNotes').value=c.notes||'';
@@ -907,6 +926,7 @@ function openNew(){
   document.getElementById('mCtype').value='video_organic';document.getElementById('mFunnel').value='';document.getElementById('mRef').value='';
   document.getElementById('mReview').value='';
   populateChain('');renderDerivatives(null);
+  document.getElementById('mMagnetFormat').value='';document.getElementById('mTargetIcp').value='';document.getElementById('mOptin').value='';toggleMagnetFields();
   document.getElementById('mOwner').value='chris';document.getElementById('mBatch').value='Sprint 1';
   document.getElementById('mRecord').value=WEEK1;document.getElementById('mLive').value='';
   document.getElementById('mFile').value='';document.getElementById('mNotes').value='';
@@ -925,6 +945,9 @@ async function saveCard(){
     referenceUrl:document.getElementById('mRef').value.trim(),
     chainTemplateId:document.getElementById('mChain').value?Number(document.getElementById('mChain').value):null,
     reviewUrl:document.getElementById('mReview').value.trim(),
+    magnetFormat:document.getElementById('mMagnetFormat').value||null,
+    targetIcp:document.getElementById('mTargetIcp').value.trim()||null,
+    optinCount:document.getElementById('mOptin').value!==''?Number(document.getElementById('mOptin').value):null,
     owner:document.getElementById('mOwner').value,
     batch:document.getElementById('mBatch').value.trim(),
     recordWeek:document.getElementById('mRecord').value||null,
