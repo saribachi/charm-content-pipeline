@@ -153,7 +153,8 @@
   .pp-empty{font-size:12.5px;color:var(--muted);padding:10px}
   .ref-link{font-size:10px;font-weight:700;text-decoration:none;background:var(--purple-l);color:var(--purple);padding:1px 6px;border-radius:6px;margin-left:4px}
   .ref-link:hover{filter:brightness(.96)}
-  .review-link{background:#e7f7ee;color:var(--ok)}
+  .review-file{display:inline-block;margin:6px 0 2px;font-size:11px;font-weight:700;color:var(--ok);background:#e7f7ee;padding:3px 10px;border-radius:7px;text-decoration:none}
+  .review-file:hover{filter:brightness(.95)}
   .backlog{margin-top:18px;border:1px dashed var(--line);border-radius:14px;background:var(--bg);padding:14px 16px}
   .bk-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
   .bk-title{font-weight:800;font-size:14px;color:var(--ink)} .bk-title span{color:var(--muted)}
@@ -731,11 +732,11 @@ function cardEl(c){
   const parent=c.parentId?cards.find(x=>x.id===c.parentId):null;
   const childLine=c.parentId?`<div class="child-of" title="Derivative">🔗 from ${esc(parent?parent.name:'(deleted)')}</div>`:'';
   const refs=refLinks(c);
-  const reviewLink=(c.reviewUrl&&/^https?:\/\//i.test(c.reviewUrl))?`<a class="ref-link review-link" href="${esc(c.reviewUrl)}" target="_blank" rel="noopener" title="Finished file for review" onpointerdown="event.stopPropagation()">🎬 file</a>`:'';
+  const reviewLine=(c.reviewUrl&&/^https?:\/\//i.test(c.reviewUrl))?`<a class="review-file" href="${esc(c.reviewUrl)}" target="_blank" rel="noopener" title="Finished file for review" onpointerdown="event.stopPropagation()">🎬 Review file →</a>`:'';
   const t=timerInfo(c);const timerEl=t?`<div class="timer ${t.cls}" title="In-Edit SLA: ${slaHours(c)}h">${t.label}</div>`:'';
   d.innerHTML=`<div class="top"><span class="top-l"><span class="tag ${c.track}">${TRACK_LBL[c.track]}</span>${ctypeBadge}${funBadge}</span><span style="display:flex;gap:4px;align-items:center">${newBadge}${chainBadge}${scriptBadge}${c.type==='vsl'?'<span class="vsl-pill">VSL</span>':''}</span></div>${corner}
-    <div class="ttl">${esc(c.name)}</div><div class="hk">${esc(c.hook||'')}</div>${childLine}${timerEl}
-    <div class="ft"><span class="own ${ownClass}">${c.owner}</span>${refs}${reviewLink}${perf}</div>`;
+    <div class="ttl">${esc(c.name)}</div>${reviewLine}<div class="hk">${esc(c.hook||'')}</div>${childLine}${timerEl}
+    <div class="ft"><span class="own ${ownClass}">${c.owner}</span>${refs}${perf}</div>`;
   d.addEventListener('pointerdown',e=>startDrag(e,c,d));
   return d;
 }
