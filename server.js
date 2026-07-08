@@ -205,7 +205,7 @@ function rowToCard(r) {
     stage: r.stage, owner: r.owner, batch: r.batch, file: r.file, notes: r.notes,
     script: r.script || '',
     recordWeek: iso(r.record_week), liveDate: iso(r.live_date),
-    perf: { hold: r.perf_hold || '', ctr: r.perf_ctr || '', cpl: r.perf_cpl || '' },
+    performance: r.performance || {},
     position: r.position, backlogged: !!r.backlogged,
     contentType: r.content_type, referenceUrl: r.reference_url, reviewUrl: r.review_url, funnelStage: r.funnel_stage,
     editStartedAt: r.edit_started_at, sprintId: r.sprint_id,
@@ -328,11 +328,7 @@ app.put('/api/cards/:id', async (req, res) => {
     for (const [key, col] of Object.entries(FIELDS)) {
       if (key in b) { sets.push(`${col} = $${i++}`); vals.push(b[key] === '' ? null : b[key]); }
     }
-    if (b.perf) {
-      if ('hold' in b.perf) { sets.push(`perf_hold = $${i++}`); vals.push(b.perf.hold); }
-      if ('ctr' in b.perf)  { sets.push(`perf_ctr = $${i++}`);  vals.push(b.perf.ctr); }
-      if ('cpl' in b.perf)  { sets.push(`perf_cpl = $${i++}`);  vals.push(b.perf.cpl); }
-    }
+    if (b.performance) { sets.push(`performance = $${i++}`); vals.push(JSON.stringify(b.performance)); }
     // Auto-stamp live_date the first time a card lands on Live and has no date yet.
     if (b.stage === 'live' || b.stage === 'reviewed') {
       sets.push(`live_date = COALESCE(live_date, CURRENT_DATE)`);
@@ -505,11 +501,60 @@ async function checkEditSlas() {
   } catch (e) { console.warn('edit-SLA check failed:', e.message); }
 }
 
+// ---- weekly Monday digest (the low-noise nag) ----
+const CTYPE_LABEL_SRV = { ad: 'Ad', vsl: 'VSL', video_organic: 'Organic video', linkedin_post: 'LinkedIn post', lead_magnet: 'Lead magnet', newsletter_issue: 'Newsletter', partner_asset: 'Partner asset' };
+function mondayISO(d) {
+  const x = new Date(d); const off = (x.getUTCDay() + 6) % 7; // 0 = Monday
+  x.setUTCDate(x.getUTCDate() - off);
+  return x.toISOString().slice(0, 10);
+}
+async function weeklyDigest() {
+  if (!SLACK_WEBHOOK) return { ok: false, reason: 'no webhook' };
+  const cards = (await pool.query(`SELECT * FROM cards WHERE backlogged=FALSE`)).rows.map(rowToCard);
+  const rules = (await pool.query(`SELECT * FROM cadence_rules WHERE active`)).rows;
+  const now = Date.now();
+  const label = (ct) => CTYPE_LABEL_SRV[ct] || ct;
+  const lines = [];
+  for (const r of rules) {
+    const target = r.target_count || 0;
+    if (target <= 0) { if (!r.default_owner) lines.push(`:red_circle: *${label(r.content_type)}*: no owner assigned`); continue; }
+    const winDays = r.period === 'quarter' ? 90 : 30;
+    const live = cards.filter(c => c.contentType === r.content_type && c.liveDate && (now - new Date(c.liveDate).getTime()) <= winDays * 86400000).length;
+    const expected = Math.round(target * (winDays / ({ week: 7, sprint: 14, month: 30, quarter: 90 }[r.period] || 14)));
+    if (!r.default_owner) lines.push(`:red_circle: *${label(r.content_type)}*: ${live} live / ~${expected} target (no owner)`);
+    else if (live < 0.75 * expected) lines.push(`:red_circle: *${label(r.content_type)}*: ${live} / ~${expected} (${r.default_owner})`);
+    else if (live < expected) lines.push(`:large_yellow_circle: *${label(r.content_type)}*: ${live} / ~${expected} (${r.default_owner})`);
+  }
+  const stuck = cards.filter(c => c.stage !== 'live' && c.stage !== 'reviewed' && c.updatedAt && (now - new Date(c.updatedAt).getTime()) > 7 * 86400000);
+  if (stuck.length) lines.push(`:hourglass_flowing_sand: *${stuck.length} stuck 7+ days*: ${stuck.slice(0, 5).map(c => c.name).join(', ')}${stuck.length > 5 ? '…' : ''}`);
+  const mon = mondayISO(new Date());
+  const shooting = cards.filter(c => c.recordWeek === mon && c.stage === 'planned');
+  if (shooting.length) lines.push(`:clapper: *Recording this week*: ${shooting.slice(0, 6).map(c => c.name).join(', ')}`);
+  const body = lines.length ? lines.join('\n') : ':white_check_mark: All lanes on track.';
+  await postSlack(`:clipboard: *Charm Content — week of ${mon}*\n${body}\n<${BOARD_URL}|Open the board →>`);
+  return { ok: true, lines: lines.length };
+}
+app.post('/api/digest/test', async (_req, res) => {
+  try { res.json(await weeklyDigest()); } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 const PORT = process.env.PORT || 3000;
 initDb()
   .then(() => {
     app.listen(PORT, () => console.log(`Charm Content Pipeline on :${PORT}`));
     setInterval(checkEditSlas, 15 * 60 * 1000); // every 15 min
     setTimeout(checkEditSlas, 30 * 1000);       // and shortly after boot
+    // Weekly digest: Monday 8am Phoenix (UTC-7, no DST), deduped per week via meta.
+    setInterval(async () => {
+      try {
+        const phx = new Date(Date.now() - 7 * 3600000);
+        if (phx.getUTCDay() !== 1 || phx.getUTCHours() !== 8) return;
+        const wk = mondayISO(new Date());
+        const last = (await pool.query(`SELECT v FROM meta WHERE k='digest_week'`)).rows[0];
+        if (last && last.v === wk) return;
+        await weeklyDigest();
+        await pool.query(`INSERT INTO meta (k,v) VALUES ('digest_week',$1) ON CONFLICT (k) DO UPDATE SET v=$1`, [wk]);
+      } catch (e) { console.warn('digest cron failed:', e.message); }
+    }, 10 * 60 * 1000);
   })
   .catch((e) => { console.error('DB init failed:', e); process.exit(1); });

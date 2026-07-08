@@ -426,6 +426,8 @@
           <div class="cad-row"><div class="cad-day">Following week</div><div class="cad-txt"><b>Leo edits, captions, schedules, posts</b> to Meta. ~1 week turnaround.</div></div>
         </div>
         <p style="margin-top:14px;font-size:12px;color:var(--muted)">2&ndash;3 batches always in flight: this week recording / last week editing / prior week posting.</p>
+        <p style="margin-top:10px;font-size:12px;color:var(--muted)">A digest posts to Slack every <b>Monday 8am Phoenix</b>: lanes behind, stuck cards, and what's recording this week.</p>
+        <button class="btn-ghost" onclick="sendTestDigest(this)" style="margin-top:6px">Send test digest now</button>
       </div>
       <div class="ref-card">
         <h3>Pipeline stages</h3>
@@ -487,7 +489,7 @@
       <div class="fld"><label>Owner</label><select id="mOwner"><option value="chris">Chris</option><option value="leo">Leo</option><option value="sarah">Sarah</option></select></div>
     </div>
     <div class="row3">
-      <div class="fld"><label>Content type</label><select id="mCtype" onchange="refreshStageOptions();toggleMagnetFields()"><option value="ad">Ad</option><option value="vsl">VSL</option><option value="video_organic">Organic video</option><option value="linkedin_post">LinkedIn post</option><option value="lead_magnet">Lead magnet</option><option value="newsletter_issue">Newsletter</option><option value="partner_asset">Partner asset</option></select></div>
+      <div class="fld"><label>Content type</label><select id="mCtype" onchange="refreshStageOptions();toggleMagnetFields();renderPerfFields(this.value,{})"><option value="ad">Ad</option><option value="vsl">VSL</option><option value="video_organic">Organic video</option><option value="linkedin_post">LinkedIn post</option><option value="lead_magnet">Lead magnet</option><option value="newsletter_issue">Newsletter</option><option value="partner_asset">Partner asset</option></select></div>
       <div class="fld"><label>Funnel stage</label><select id="mFunnel"><option value="">— (MOF default)</option><option value="tof">TOF</option><option value="mof">MOF</option><option value="bof">BOF</option></select></div>
       <div class="fld"><label>Reference URL(s) <span style="text-transform:none;font-weight:500;color:var(--purple)">— inspiration links</span></label><input id="mRef" type="text" placeholder="https://…  (space/comma sep)"></div>
     </div>
@@ -511,11 +513,7 @@
     </div>
     <div class="perf-box">
       <div class="ph">Performance (fill at Thursday review)</div>
-      <div class="row3">
-        <div class="fld" style="margin:0"><label>3-sec hold %</label><input id="mHold" type="text" placeholder="%"></div>
-        <div class="fld" style="margin:0"><label>CTR %</label><input id="mCtr" type="text" placeholder="%"></div>
-        <div class="fld" style="margin:0"><label>CPL / CPA</label><input id="mCpl" type="text" placeholder="$"></div>
-      </div>
+      <div class="row3" id="mPerfFields"></div>
     </div>
     <div class="modal-ft">
       <button class="btn-danger" id="mDelete" onclick="delCard()">Delete</button>
@@ -592,6 +590,16 @@ const CTYPES=[
 const CTYPE_LABEL=Object.fromEntries(CTYPES.map(c=>[c.v,c.label]));
 const CTYPE_BADGE=Object.fromEntries(CTYPES.map(c=>[c.v,c.badge]));
 const PERIOD_DAYS={week:7,sprint:14,month:30,quarter:90};
+// Per-type performance fields (filled at Thursday review), stored in the card's performance JSONB.
+const PERF_SCHEMAS={
+  ad:[['hold','3-sec hold %'],['ctr','CTR %'],['cpl','CPL / CPA']],
+  vsl:[['views','Views'],['watch','Avg watch %'],['booking','CTR to booking']],
+  video_organic:[['views','Views'],['watch','Avg watch %'],['booking','CTR to booking']],
+  linkedin_post:[['impr','Impressions'],['eng','Engagements'],['clicks','Profile clicks'],['dms','DMs started']],
+  newsletter_issue:[['open','Open %'],['click','Click %'],['replies','Replies'],['unsubs','Unsubscribes']],
+  partner_asset:[['deals','Deals sourced']],
+};
+function perfSchema(ct){return PERF_SCHEMAS[ct]||PERF_SCHEMAS.ad;}
 const WEEK1='2026-06-15';       // Sprint 1 = week of Mon Jun 15 2026
 const N_WEEKS=8;
 
@@ -746,7 +754,8 @@ function onDragEnd(){cleanupDrag();drag=null;}
 function cardEl(c){
   const d=document.createElement('div');d.className='card '+c.track;
   const ownClass=c.owner==='leo'?'leo':c.owner==='sarah'?'sarah':'';
-  const perf=(c.perf&&(c.perf.hold||c.perf.ctr))?`<span class="perf-mini">${c.perf.hold?('hold '+c.perf.hold):''}${c.perf.ctr?(' · ctr '+c.perf.ctr):''}</span>`:'';
+  const pv=c.performance||{};const pf=perfSchema(c.contentType).filter(([k])=>pv[k]!=null&&pv[k]!=='').slice(0,2);
+  const perf=pf.length?`<span class="perf-mini">${pf.map(([k,lbl])=>esc(lbl.replace(/ %$/,'').replace(' / CPA',''))+' '+esc(pv[k])).join(' · ')}</span>`:'';
   let corner='';
   if(c.notes&&c.notes.indexOf('⚠')>-1)corner='<span class="flag">⚠</span>';
   else if(isStuck(c))corner='<span class="stuckdot" title="Not moved in 7+ days"></span>';
@@ -887,7 +896,9 @@ async function promote(text){
 /* ---- modal ---- */
 function stageOptions(sel,ct){return flowOf(ct).stages.map(s=>`<option value="${s.id}" ${s.id===sel?'selected':''}>${s.name}</option>`).join('');}
 function refreshStageOptions(){const ct=document.getElementById('mCtype').value,cur=document.getElementById('mStage').value,st=flowOf(ct).stages;document.getElementById('mStage').innerHTML=stageOptions(st.some(s=>s.id===cur)?cur:st[0].id,ct);}
+async function sendTestDigest(btn){const orig=btn.textContent;btn.textContent='Sending…';btn.disabled=true;try{await api('POST','/api/digest/test',{});btn.textContent='Sent to Slack ✓';}catch(e){btn.textContent='Failed — retry';}setTimeout(()=>{btn.textContent=orig;btn.disabled=false;},3500);}
 function toggleMagnetFields(){const isMag=document.getElementById('mCtype').value==='lead_magnet';document.getElementById('mMagnetFields').style.display=isMag?'':'none';const pb=document.querySelector('.perf-box');if(pb)pb.style.display=isMag?'none':'';}
+function renderPerfFields(ct,vals){vals=vals||{};document.getElementById('mPerfFields').innerHTML=perfSchema(ct).map(([k,lbl])=>`<div class="fld" style="margin:0"><label>${lbl}</label><input class="perf-in" data-k="${k}" type="text" value="${esc(vals[k]||'')}"></div>`).join('');}
 function populateChain(sel){
   document.getElementById('mChain').innerHTML='<option value="">None</option>'+
     chainTemplates.map(t=>`<option value="${t.id}" ${String(sel)===String(t.id)?'selected':''}>${esc(t.name)} → ${(t.children||[]).length} at ${t.trigger_stage}</option>`).join('');
@@ -914,7 +925,7 @@ function openEdit(id){
   document.getElementById('mRecord').value=c.recordWeek||'';document.getElementById('mLive').value=c.liveDate||'';
   document.getElementById('mFile').value=c.file||'';document.getElementById('mNotes').value=c.notes||'';
   document.getElementById('mScript').value=c.script||'';
-  document.getElementById('mHold').value=(c.perf&&c.perf.hold)||'';document.getElementById('mCtr').value=(c.perf&&c.perf.ctr)||'';document.getElementById('mCpl').value=(c.perf&&c.perf.cpl)||'';
+  renderPerfFields(c.contentType||'video_organic',c.performance||{});
   document.getElementById('mDelete').classList.remove('hide');
   const mb=document.getElementById('mBacklog');mb.classList.remove('hide');mb.textContent=c.backlogged?'Restore to board':'Move to backlog';
   document.getElementById('overlay').classList.add('show');
@@ -932,7 +943,7 @@ function openNew(){
   document.getElementById('mRecord').value=WEEK1;document.getElementById('mLive').value='';
   document.getElementById('mFile').value='';document.getElementById('mNotes').value='';
   document.getElementById('mScript').value='';
-  document.getElementById('mHold').value='';document.getElementById('mCtr').value='';document.getElementById('mCpl').value='';
+  renderPerfFields('video_organic',{});
   document.getElementById('mDelete').classList.add('hide');document.getElementById('mBacklog').classList.add('hide');document.getElementById('overlay').classList.add('show');
 }
 async function saveCard(){
@@ -956,7 +967,7 @@ async function saveCard(){
     file:document.getElementById('mFile').value.trim(),
     notes:document.getElementById('mNotes').value.trim(),
     script:document.getElementById('mScript').value,
-    perf:{hold:document.getElementById('mHold').value.trim(),ctr:document.getElementById('mCtr').value.trim(),cpl:document.getElementById('mCpl').value.trim()}
+    performance:(()=>{const p={};document.querySelectorAll('#mPerfFields .perf-in').forEach(inp=>{const v=inp.value.trim();if(v)p[inp.dataset.k]=v;});return p;})()
   };
   if(editing){const updated=await api('PUT','/api/cards/'+editing,data);Object.assign(cards.find(x=>x.id===editing),updated);}
   else{data.type=data.track==='vsl'?'vsl':'ad';const card=await api('POST','/api/cards',data);cards.push(card);}

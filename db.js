@@ -304,6 +304,14 @@ export async function initDb() {
     }
   }
 
+  // ---- v2 Phase 6: per-type performance (JSONB) ----
+  await pool.query(`ALTER TABLE cards ADD COLUMN IF NOT EXISTS performance JSONB DEFAULT '{}'::jsonb`);
+  // Migrate legacy ad perf columns into the JSONB (once).
+  await pool.query(`UPDATE cards SET performance = jsonb_strip_nulls(jsonb_build_object(
+      'hold', NULLIF(perf_hold,''), 'ctr', NULLIF(perf_ctr,''), 'cpl', NULLIF(perf_cpl,'')))
+    WHERE (performance IS NULL OR performance='{}'::jsonb)
+      AND (COALESCE(perf_hold,'')<>'' OR COALESCE(perf_ctr,'')<>'' OR COALESCE(perf_cpl,'')<>'')`);
+
   const seeded = await pool.query(`SELECT v FROM meta WHERE k = 'seeded'`);
   if (seeded.rowCount === 0) {
     await seedCards();
