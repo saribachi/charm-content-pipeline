@@ -104,8 +104,11 @@ function notifyReviewReady(card) {
   if (!SLACK_WEBHOOK) return;
   const chris = CHRIS_SLACK_ID ? `<@${CHRIS_SLACK_ID}>` : '@Chris';
   const sarah = SARAH_SLACK_ID ? `<@${SARAH_SLACK_ID}>` : '@Sarah';
-  const link = card.reviewUrl ? ` — <${card.reviewUrl}|open the file>` : '';
-  postSlack(`:eyes: ${chris} ${sarah} *${card.name}* is *ready for review*${link}. <${BOARD_URL}|Open the board →>`);
+  const urls = (card.reviewUrl || '').split(/[\s,]+/).filter((u) => /^https?:\/\//i.test(u));
+  const n = urls.length;
+  const links = n ? ' — ' + urls.map((u, i) => `<${u}|variation ${i + 1}>`).join(' · ') : '';
+  const cnt = n > 1 ? ` (*${n} variations*)` : '';
+  postSlack(`:eyes: ${chris} ${sarah} *${card.name}* is *ready for review*${cnt}${links}. <${BOARD_URL}|Open the board →>`);
 }
 const TRACK_LABEL = { gtm: 'GTM', cs: 'CS-Flex', vsl: 'VSL' };
 // Leo's handoff: when a card reaches "Uploaded" he gets @-tagged with a link to the right Drive folder.
