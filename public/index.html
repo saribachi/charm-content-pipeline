@@ -159,6 +159,11 @@
   .ref-link{font-size:10px;font-weight:700;text-decoration:none;background:var(--purple-l);color:var(--purple);padding:1px 6px;border-radius:6px;margin-left:4px}
   .ref-link:hover{filter:brightness(.96)}
   .source-link{background:#e0f2fe;color:#0369a1}
+  .prodbox{border:1.5px solid var(--purple);background:#faf6ff;border-radius:10px;padding:12px 14px;margin:4px 0 14px}
+  .prodbox .fld{margin-bottom:10px}
+  .prodbox .fld:last-child{margin-bottom:0}
+  .prodhd{font-size:12px;font-weight:800;color:var(--purple);text-transform:uppercase;letter-spacing:.03em;margin-bottom:10px}
+  .vempty{font-size:12px;color:var(--muted);background:#fff;border:1px dashed var(--line);border-radius:6px;padding:8px 10px}
   .veditor{display:flex;flex-direction:column;gap:6px;margin-bottom:6px}
   .vrow{display:flex;gap:5px;align-items:center}
   .vrow .v-label{flex:1 1 80px;min-width:0}
@@ -517,6 +522,13 @@
       <div class="fld"><label>Funnel stage</label><select id="mFunnel"><option value="">— (MOF default)</option><option value="tof">TOF</option><option value="mof">MOF</option><option value="bof">BOF</option></select></div>
       <div class="fld"><label>Reference URL(s) <span style="text-transform:none;font-weight:500;color:var(--purple)">— inspiration links</span></label><input id="mRef" type="text" placeholder="https://…  (space/comma sep)"></div>
     </div>
+    <div class="prodbox">
+      <div class="prodhd">🎬 Production files &mdash; recording in, edited versions out</div>
+      <div class="fld"><label>Recording (Chris) <span style="text-transform:none;font-weight:500;color:var(--purple)">— the one raw take for this script (Chris → Leo)</span></label><input id="mSource" type="text" placeholder="https://drive.google.com/file/…"></div>
+      <div class="fld"><label>Edited versions (variants) <span style="text-transform:none;font-weight:500;color:var(--purple)">— one row per cut: label, its own type, status, file link. Completed / posted count toward that type's goal.</span></label>
+        <div id="mVariants" class="veditor"></div>
+        <button type="button" class="btn-ghost vadd" onclick="addVariant()">+ Add variant</button></div>
+    </div>
     <div class="fld"><label>Repurposing chain <span style="text-transform:none;font-weight:500;color:var(--purple)">— auto-spawns derivatives when this hits the trigger stage</span></label><select id="mChain"><option value="">None</option></select></div>
     <div id="mDerivatives"></div>
     <div class="row3">
@@ -525,10 +537,6 @@
       <div class="fld"><label>Live date</label><input id="mLive" type="date"></div>
     </div>
     <div class="fld"><label>File name</label><input id="mFile" type="text" placeholder="gtm-burned-01-20260615"></div>
-    <div class="fld"><label>Recording (Chris) <span style="text-transform:none;font-weight:500;color:var(--purple)">— the one raw take for this script (Chris → Leo)</span></label><input id="mSource" type="text" placeholder="https://drive.google.com/file/…"></div>
-    <div class="fld"><label>Edited versions <span style="text-transform:none;font-weight:500;color:var(--purple)">— break out each variant: label, its own type, status, file link. Completed / posted variants count toward that type's goal.</span></label>
-      <div id="mVariants" class="veditor"></div>
-      <button type="button" class="btn-ghost vadd" onclick="addVariant()">+ Add variant</button></div>
     <div class="fld"><label>Notes</label><textarea id="mNotes" placeholder="Hook variants, blockers, cleared brands, etc."></textarea></div>
     <div class="fld"><label>Script <span style="text-transform:none;font-weight:500;color:var(--purple)">— drop the full script here for Chris</span></label><textarea id="mScript" placeholder="Paste the full on-camera script / VO here. Chris reads from this." style="min-height:160px;font-size:13px;line-height:1.5"></textarea></div>
     <div id="mMagnetFields" style="display:none">
@@ -630,7 +638,7 @@ function variantRowHtml(v){v=v||{};
     <input class="v-url" placeholder="edited file link" value="${esc(v.url||'')}">
     <button type="button" class="vdel" title="Remove" onclick="this.closest('.vrow').remove()">×</button>
   </div>`;}
-function renderVariants(list){document.getElementById('mVariants').innerHTML=(list||[]).map(variantRowHtml).join('');}
+function renderVariants(list){const box=document.getElementById('mVariants');box.innerHTML=(list&&list.length)?list.map(variantRowHtml).join(''):'<div class="vempty">No edited versions yet. Click <b>+ Add variant</b> below to break out a cut (Hook A, an organic edit, etc.).</div>';}
 function addVariant(){const c=cards.find(x=>x.id===editing);document.getElementById('mVariants').insertAdjacentHTML('beforeend',variantRowHtml({type:(c&&c.contentType)||'ad',status:'planned'}));}
 function readVariants(){
   return [...document.querySelectorAll('#mVariants .vrow')].map(row=>{
