@@ -181,9 +181,10 @@ async function flushHandoff() {
   const tag = LEO_SLACK_ID ? `<@${LEO_SLACK_ID}>` : '@Leo';
   const lines = items.map((c) => {
     const f = folderFor(c);
-    return f
-      ? `• *${c.name}* — <${f.url}|:file_folder: ${f.label}>`
-      : `• *${c.name}* (${TRACK_LABEL[c.track] || (c.track || '').toUpperCase()})`;
+    const urls = (c.sourceUrl || '').split(/[\s,]+/).filter((u) => /^https?:\/\//i.test(u));
+    const src = urls.map((u, idx) => `<${u}|:movie_camera: file${urls.length > 1 ? ' ' + (idx + 1) : ''}>`).join(' ');
+    const folder = f ? `<${f.url}|:file_folder: ${f.label}>` : (TRACK_LABEL[c.track] || (c.track || '').toUpperCase());
+    return `• *${c.name}* — ${src ? src + ' · ' : ''}${folder}`;
   });
   const n = items.length;
   const head = `:inbox_tray: *${n} file${n > 1 ? 's' : ''} uploaded — ready to edit* ${tag}`;
@@ -207,7 +208,7 @@ function rowToCard(r) {
     recordWeek: iso(r.record_week), liveDate: iso(r.live_date),
     performance: r.performance || {},
     position: r.position, backlogged: !!r.backlogged,
-    contentType: r.content_type, referenceUrl: r.reference_url, reviewUrl: r.review_url, funnelStage: r.funnel_stage,
+    contentType: r.content_type, referenceUrl: r.reference_url, reviewUrl: r.review_url, sourceUrl: r.source_url, funnelStage: r.funnel_stage,
     editStartedAt: r.edit_started_at, sprintId: r.sprint_id,
     parentId: r.parent_id, chainTemplateId: r.chain_template_id,
     magnetFormat: r.magnet_format, targetIcp: r.target_icp, giveawayPostId: r.giveaway_post_id, optinCount: r.optin_count,
@@ -220,7 +221,7 @@ const FIELDS = {
   owner: 'owner', batch: 'batch', file: 'file', notes: 'notes', script: 'script',
   recordWeek: 'record_week', liveDate: 'live_date', backlogged: 'backlogged',
   contentType: 'content_type', referenceUrl: 'reference_url', funnelStage: 'funnel_stage',
-  chainTemplateId: 'chain_template_id', reviewUrl: 'review_url',
+  chainTemplateId: 'chain_template_id', reviewUrl: 'review_url', sourceUrl: 'source_url',
   magnetFormat: 'magnet_format', targetIcp: 'target_icp', optinCount: 'optin_count',
 };
 
@@ -348,7 +349,7 @@ app.put('/api/cards/:id', async (req, res) => {
     if (before && card.stage !== before.stage) {
       if (card.stage === 'shared') {
         // Reached "Uploaded" → Leo's handoff (tags him + Drive folder), not the generic digest.
-        notifyHandoff({ name: card.name, track: card.track });
+        notifyHandoff({ name: card.name, track: card.track, sourceUrl: card.sourceUrl });
       } else if (card.stage === 'scheduled' && VIDEO_TYPES.includes(card.contentType)) {
         // Video "Ready for review" → tag Chris + Sarah with the editor's file link.
         notifyReviewReady(card);

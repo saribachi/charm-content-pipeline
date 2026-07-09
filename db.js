@@ -251,6 +251,8 @@ export async function initDb() {
   await pool.query(`ALTER TABLE cards ADD COLUMN IF NOT EXISTS chain_template_id INTEGER`);
   // Editor's finished-file link for the "Ready for review" stage.
   await pool.query(`ALTER TABLE cards ADD COLUMN IF NOT EXISTS review_url TEXT DEFAULT ''`);
+  // Raw source video link(s) (Chris -> Leo): the exact files that feed a card, incl. hook variants.
+  await pool.query(`ALTER TABLE cards ADD COLUMN IF NOT EXISTS source_url TEXT DEFAULT ''`);
   await pool.query(`CREATE TABLE IF NOT EXISTS chain_templates (
     id SERIAL PRIMARY KEY, name TEXT NOT NULL, trigger_stage TEXT NOT NULL, children JSONB NOT NULL
   )`);

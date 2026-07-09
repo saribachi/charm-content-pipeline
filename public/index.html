@@ -158,6 +158,7 @@
   .pp-empty{font-size:12.5px;color:var(--muted);padding:10px}
   .ref-link{font-size:10px;font-weight:700;text-decoration:none;background:var(--purple-l);color:var(--purple);padding:1px 6px;border-radius:6px;margin-left:4px}
   .ref-link:hover{filter:brightness(.96)}
+  .source-link{background:#e0f2fe;color:#0369a1}
   .review-file{display:inline-block;margin:6px 0 2px;font-size:11px;font-weight:700;color:var(--ok);background:#e7f7ee;padding:3px 10px;border-radius:7px;text-decoration:none}
   .review-file:hover{filter:brightness(.95)}
   .backlog{margin-top:18px;border:1px dashed var(--line);border-radius:14px;background:var(--bg);padding:14px 16px}
@@ -501,6 +502,7 @@
       <div class="fld"><label>Live date</label><input id="mLive" type="date"></div>
     </div>
     <div class="fld"><label>File name</label><input id="mFile" type="text" placeholder="gtm-burned-01-20260615"></div>
+    <div class="fld"><label>Source video(s) <span style="text-transform:none;font-weight:500;color:var(--purple)">— raw recording link(s); paste every hook variant, space/comma separated (Chris → Leo)</span></label><input id="mSource" type="text" placeholder="https://drive.google.com/file/…   https://drive.google.com/file/…"></div>
     <div class="fld"><label>Review file link <span style="text-transform:none;font-weight:500;color:var(--purple)">— editor pastes the finished file here for Chris + Sarah to review</span></label><input id="mReview" type="text" placeholder="https://drive.google.com/…  or a Frame.io link"></div>
     <div class="fld"><label>Notes</label><textarea id="mNotes" placeholder="Hook variants, blockers, cleared brands, etc."></textarea></div>
     <div class="fld"><label>Script <span style="text-transform:none;font-weight:500;color:var(--purple)">— drop the full script here for Chris</span></label><textarea id="mScript" placeholder="Paste the full on-camera script / VO here. Chris reads from this." style="min-height:160px;font-size:13px;line-height:1.5"></textarea></div>
@@ -769,10 +771,11 @@ function cardEl(c){
   const magnetLine=c.contentType==='lead_magnet'?`<div class="magnet-line">${c.magnetFormat?`<span class="mfmt">${esc(c.magnetFormat)}</span>`:''}${c.targetIcp?` ${esc(c.targetIcp)}`:''}${c.optinCount!=null?` · <b>${c.optinCount}</b> opt-ins`:''}</div>`:'';
   const refs=refLinks(c);
   const reviewLine=(c.reviewUrl&&/^https?:\/\//i.test(c.reviewUrl))?`<a class="review-file" href="${esc(c.reviewUrl)}" target="_blank" rel="noopener" title="Finished file for review" onpointerdown="event.stopPropagation()">🎬 Review file →</a>`:'';
+  const sourceLinks=(()=>{const urls=(c.sourceUrl||'').split(/[\s,]+/).filter(u=>/^https?:\/\//i.test(u));return urls.slice(0,5).map((u,i)=>`<a class="ref-link source-link" href="${esc(u)}" target="_blank" rel="noopener" title="Source video" onpointerdown="event.stopPropagation()">🎥${urls.length>1?(i+1):''}</a>`).join('');})();
   const t=timerInfo(c);const timerEl=t?`<div class="timer ${t.cls}" title="In-Edit SLA: ${slaHours(c)}h">${t.label}</div>`:'';
   d.innerHTML=`<div class="top"><span class="top-l"><span class="tag ${c.track}">${TRACK_LBL[c.track]}</span>${ctypeBadge}${funBadge}</span><span style="display:flex;gap:4px;align-items:center">${newBadge}${chainBadge}${scriptBadge}${c.type==='vsl'?'<span class="vsl-pill">VSL</span>':''}</span></div>${corner}
     <div class="ttl">${esc(c.name)}</div>${reviewLine}<div class="hk">${esc(c.hook||'')}</div>${magnetLine}${childLine}${timerEl}
-    <div class="ft"><span class="own ${ownClass}">${c.owner}</span>${refs}${perf}</div>`;
+    <div class="ft"><span class="own ${ownClass}">${c.owner}</span>${refs}${sourceLinks}${perf}</div>`;
   d.addEventListener('pointerdown',e=>startDrag(e,c,d));
   return d;
 }
@@ -918,7 +921,7 @@ function openEdit(id){
   document.getElementById('mName').value=c.name||'';document.getElementById('mHook').value=c.hook||'';
   document.getElementById('mTrack').value=c.track;document.getElementById('mStage').innerHTML=stageOptions(c.stage,c.contentType);
   document.getElementById('mCtype').value=c.contentType||'video_organic';document.getElementById('mFunnel').value=c.funnelStage||'';document.getElementById('mRef').value=c.referenceUrl||'';
-  document.getElementById('mReview').value=c.reviewUrl||'';
+  document.getElementById('mReview').value=c.reviewUrl||'';document.getElementById('mSource').value=c.sourceUrl||'';
   populateChain(c.chainTemplateId||'');renderDerivatives(c.id);
   document.getElementById('mMagnetFormat').value=c.magnetFormat||'';document.getElementById('mTargetIcp').value=c.targetIcp||'';document.getElementById('mOptin').value=(c.optinCount!=null?c.optinCount:'');toggleMagnetFields();
   document.getElementById('mOwner').value=c.owner;document.getElementById('mBatch').value=c.batch||'';
@@ -936,7 +939,7 @@ function openNew(){
   document.getElementById('mName').value='';document.getElementById('mHook').value='';
   document.getElementById('mTrack').value='gtm';document.getElementById('mStage').innerHTML=stageOptions('planned','video_organic');
   document.getElementById('mCtype').value='video_organic';document.getElementById('mFunnel').value='';document.getElementById('mRef').value='';
-  document.getElementById('mReview').value='';
+  document.getElementById('mReview').value='';document.getElementById('mSource').value='';
   populateChain('');renderDerivatives(null);
   document.getElementById('mMagnetFormat').value='';document.getElementById('mTargetIcp').value='';document.getElementById('mOptin').value='';toggleMagnetFields();
   document.getElementById('mOwner').value='chris';document.getElementById('mBatch').value='Sprint 1';
@@ -957,6 +960,7 @@ async function saveCard(){
     referenceUrl:document.getElementById('mRef').value.trim(),
     chainTemplateId:document.getElementById('mChain').value?Number(document.getElementById('mChain').value):null,
     reviewUrl:document.getElementById('mReview').value.trim(),
+    sourceUrl:document.getElementById('mSource').value.trim(),
     magnetFormat:document.getElementById('mMagnetFormat').value||null,
     targetIcp:document.getElementById('mTargetIcp').value.trim()||null,
     optinCount:document.getElementById('mOptin').value!==''?Number(document.getElementById('mOptin').value):null,
