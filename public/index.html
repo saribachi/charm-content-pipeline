@@ -159,8 +159,20 @@
   .ref-link{font-size:10px;font-weight:700;text-decoration:none;background:var(--purple-l);color:var(--purple);padding:1px 6px;border-radius:6px;margin-left:4px}
   .ref-link:hover{filter:brightness(.96)}
   .source-link{background:#e0f2fe;color:#0369a1}
-  .var-line{display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin:4px 0}
-  .var-cnt{font-size:11px;color:var(--ok);font-weight:700;margin-right:2px}
+  .veditor{display:flex;flex-direction:column;gap:6px;margin-bottom:6px}
+  .vrow{display:flex;gap:5px;align-items:center}
+  .vrow .v-label{flex:1 1 80px;min-width:0}
+  .vrow .v-url{flex:2 1 130px;min-width:0}
+  .vrow select{font-family:inherit;font-size:12px;padding:5px;border:1px solid var(--line);border-radius:6px;background:#fff}
+  .vrow input{font-family:inherit;font-size:12px;padding:5px 7px;border:1px solid var(--line);border-radius:6px}
+  .vdel{border:none;background:#f3f4f6;color:#991b1b;border-radius:6px;cursor:pointer;font-size:15px;line-height:1;padding:4px 8px}
+  .vadd{margin-top:2px}
+  .variants-box{display:flex;flex-direction:column;gap:2px;margin:5px 0}
+  .var-head{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.03em}
+  .vitem{display:flex;align-items:center;gap:5px;font-size:11px}
+  .vitem .vlbl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+  .vitem.s-planned{opacity:.6}
+  .vitem .review-file{margin-left:auto}
   .review-file{display:inline-block;margin:6px 0 2px;font-size:11px;font-weight:700;color:var(--ok);background:#e7f7ee;padding:3px 10px;border-radius:7px;text-decoration:none}
   .review-file:hover{filter:brightness(.95)}
   .backlog{margin-top:18px;border:1px dashed var(--line);border-radius:14px;background:var(--bg);padding:14px 16px}
@@ -433,13 +445,13 @@
         <button class="btn-ghost" onclick="sendTestDigest(this)" style="margin-top:6px">Send test digest now</button>
       </div>
       <div class="ref-card">
-        <h3>One card = one script → many variations</h3>
+        <h3>One card = a concept → many edited versions</h3>
         <div class="cadence">
-          <div class="cad-row"><div class="cad-day">Chris</div><div class="cad-txt"><b>1 script + 1 recording per card.</b> Paste the script and drop the raw take into <b>Recording (Chris)</b>. That keeps the card the single source of truth for the concept.</div></div>
-          <div class="cad-row"><div class="cad-day">Leo</div><div class="cad-txt"><b>Turns each recording into several variations</b> — different hooks and cuts. Every edit gets pasted into <b>Leo's variations</b> on the same card (not new cards), so it stays clean.</div></div>
-          <div class="cad-row"><div class="cad-day">The goal</div><div class="cad-txt"><b>Every variation counts toward that lane's Coverage target.</b> One recording can produce 3&ndash;5 posts, so Leo's editing output is measured, not invisible. More variations from one recording = more of the goal hit.</div></div>
+          <div class="cad-row"><div class="cad-day">Chris</div><div class="cad-txt"><b>1 script + 1 recording per card.</b> The card is the <b>concept</b> — paste the script and drop the raw take into <b>Recording (Chris)</b>.</div></div>
+          <div class="cad-row"><div class="cad-day">Leo</div><div class="cad-txt"><b>Breaks each recording into edited versions (variants).</b> Every edit is its own row under <b>Edited versions</b> — with a label (Hook A), its <b>own type</b> (ad / organic / VSL), a <b>status</b>, and the file link. All on one card, so it stays clean.</div></div>
+          <div class="cad-row"><div class="cad-day">The goal</div><div class="cad-txt">Mark a variant <b>Completed</b> when the edit is done. <b>Each completed variant counts toward its own type's Coverage target</b> — so one concept can feed the Ad lane and the Organic lane at once, and Leo's output is measured the moment it's finished, not only when posted.</div></div>
         </div>
-        <p style="margin-top:12px;font-size:12px;color:var(--muted)">At <b>Ready for review</b>, Chris + Sarah get pinged with the full set of variations to approve at once.</p>
+        <p style="margin-top:12px;font-size:12px;color:var(--muted)">At <b>Ready for review</b>, Chris + Sarah get pinged with the full set of variants to approve at once.</p>
       </div>
       <div class="ref-card">
         <h3>Pipeline stages</h3>
@@ -514,7 +526,9 @@
     </div>
     <div class="fld"><label>File name</label><input id="mFile" type="text" placeholder="gtm-burned-01-20260615"></div>
     <div class="fld"><label>Recording (Chris) <span style="text-transform:none;font-weight:500;color:var(--purple)">— the one raw take for this script (Chris → Leo)</span></label><input id="mSource" type="text" placeholder="https://drive.google.com/file/…"></div>
-    <div class="fld"><label>Leo's variations <span style="text-transform:none;font-weight:500;color:var(--purple)">— one link per edit / cut; each counts toward the content goal. Space or comma separated.</span></label><input id="mReview" type="text" placeholder="https://drive.google.com/file/…   https://drive.google.com/file/…"></div>
+    <div class="fld"><label>Edited versions <span style="text-transform:none;font-weight:500;color:var(--purple)">— break out each variant: label, its own type, status, file link. Completed / posted variants count toward that type's goal.</span></label>
+      <div id="mVariants" class="veditor"></div>
+      <button type="button" class="btn-ghost vadd" onclick="addVariant()">+ Add variant</button></div>
     <div class="fld"><label>Notes</label><textarea id="mNotes" placeholder="Hook variants, blockers, cleared brands, etc."></textarea></div>
     <div class="fld"><label>Script <span style="text-transform:none;font-weight:500;color:var(--purple)">— drop the full script here for Chris</span></label><textarea id="mScript" placeholder="Paste the full on-camera script / VO here. Chris reads from this." style="min-height:160px;font-size:13px;line-height:1.5"></textarea></div>
     <div id="mMagnetFields" style="display:none">
@@ -602,6 +616,33 @@ const CTYPES=[
 ];
 const CTYPE_LABEL=Object.fromEntries(CTYPES.map(c=>[c.v,c.label]));
 const CTYPE_BADGE=Object.fromEntries(CTYPES.map(c=>[c.v,c.badge]));
+// Variant statuses — completed/posted are "done" and count toward that variant type's goal.
+const VSTATUS=[{v:'planned',label:'Planned',icon:'◻'},{v:'edit',label:'In edit',icon:'🎬'},{v:'completed',label:'Completed',icon:'✅'},{v:'posted',label:'Posted',icon:'🚀'}];
+const VSTATUS_ICON=Object.fromEntries(VSTATUS.map(s=>[s.v,s.icon]));
+const vDone=v=>v&&(v.status==='completed'||v.status==='posted');
+function variantRowHtml(v){v=v||{};
+  const tOpts=CTYPES.map(c=>`<option value="${c.v}" ${v.type===c.v?'selected':''}>${c.label}</option>`).join('');
+  const sOpts=VSTATUS.map(s=>`<option value="${s.v}" ${(v.status||'planned')===s.v?'selected':''}>${s.icon} ${s.label}</option>`).join('');
+  return `<div class="vrow" data-id="${esc(v.id||'')}" data-completedat="${esc(v.completedAt||'')}">
+    <input class="v-label" placeholder="Hook A / label" value="${esc(v.label||'')}">
+    <select class="v-type">${tOpts}</select>
+    <select class="v-status">${sOpts}</select>
+    <input class="v-url" placeholder="edited file link" value="${esc(v.url||'')}">
+    <button type="button" class="vdel" title="Remove" onclick="this.closest('.vrow').remove()">×</button>
+  </div>`;}
+function renderVariants(list){document.getElementById('mVariants').innerHTML=(list||[]).map(variantRowHtml).join('');}
+function addVariant(){const c=cards.find(x=>x.id===editing);document.getElementById('mVariants').insertAdjacentHTML('beforeend',variantRowHtml({type:(c&&c.contentType)||'ad',status:'planned'}));}
+function readVariants(){
+  return [...document.querySelectorAll('#mVariants .vrow')].map(row=>{
+    const status=row.querySelector('.v-status').value;
+    const done=status==='completed'||status==='posted';
+    let completedAt=row.getAttribute('data-completedat')||null;
+    if(done&&!completedAt)completedAt=new Date().toISOString();
+    if(!done)completedAt=null;
+    return {id:row.getAttribute('data-id')||('v'+Date.now()+Math.floor(Math.random()*1000)),
+      label:row.querySelector('.v-label').value.trim(),type:row.querySelector('.v-type').value,
+      status,url:row.querySelector('.v-url').value.trim(),completedAt};
+  }).filter(v=>v.label||v.url);}
 const PERIOD_DAYS={week:7,sprint:14,month:30,quarter:90};
 // Per-type performance fields (filled at Thursday review), stored in the card's performance JSONB.
 const PERF_SCHEMAS={
@@ -750,10 +791,10 @@ async function onDragUp(e){
     const stage=col.dataset.stage,card=d.card;
     if(stage&&card.stage!==stage){
       const patch={stage};const owner=(TYPE_FLOW[card.contentType]||'video')==='video'?autoOwner(stage):null;if(owner)patch.owner=owner;
-      // Moving a video into "Ready for review": offer to attach the finished file link. Optional — blank skips, never blocks the move.
-      if(stage==='scheduled'&&(TYPE_FLOW[card.contentType]||'video')==='video'&&!(card.reviewUrl&&card.reviewUrl.trim())){
-        const url=prompt('Paste the finished file link for Chris + Sarah to review.\n(Optional — leave blank to move without a link.)','');
-        if(url&&url.trim()){patch.reviewUrl=url.trim();card.reviewUrl=url.trim();}
+      // Moving a video into "Ready for review": offer to add a first edited variant. Optional — blank skips, never blocks the move.
+      if(stage==='scheduled'&&(TYPE_FLOW[card.contentType]||'video')==='video'&&!((card.variants||[]).some(v=>/^https?:\/\//i.test(v&&v.url||'')))){
+        const url=prompt('Paste the finished edit link for the first variant (Chris + Sarah review it).\n(Optional — leave blank to move without one.)','');
+        if(url&&url.trim()){const nv=[...(card.variants||[]),{id:'v'+Date.now()+Math.floor(Math.random()*1000),label:'Edit 1',type:card.contentType,status:'completed',url:url.trim(),completedAt:new Date().toISOString()}];patch.variants=nv;card.variants=nv;}
       }
       Object.assign(card,patch);
       if((stage==='live'||stage==='reviewed')&&!card.liveDate)card.liveDate=todayISO();
@@ -781,7 +822,12 @@ function cardEl(c){
   const childLine=c.parentId?`<div class="child-of" title="Derivative">🔗 from ${esc(parent?parent.name:'(deleted)')}</div>`:'';
   const magnetLine=c.contentType==='lead_magnet'?`<div class="magnet-line">${c.magnetFormat?`<span class="mfmt">${esc(c.magnetFormat)}</span>`:''}${c.targetIcp?` ${esc(c.targetIcp)}`:''}${c.optinCount!=null?` · <b>${c.optinCount}</b> opt-ins`:''}</div>`:'';
   const refs=refLinks(c);
-  const reviewLine=(()=>{const urls=(c.reviewUrl||'').split(/[\s,]+/).filter(u=>/^https?:\/\//i.test(u));if(!urls.length)return '';const pills=urls.slice(0,6).map((u,i)=>`<a class="review-file" href="${esc(u)}" target="_blank" rel="noopener" title="Leo's variation ${i+1}" onpointerdown="event.stopPropagation()">🎬${urls.length>1?(i+1):' review →'}</a>`).join('');const cnt=urls.length>1?`<span class="var-cnt">${urls.length} variations</span>`:'';return `<div class="var-line">${cnt}${pills}</div>`;})();
+  const reviewLine=(()=>{const vs=(c.variants||[]).filter(Boolean);if(!vs.length)return '';
+    const rows=vs.slice(0,8).map(v=>{const ic=VSTATUS_ICON[v.status]||'◻';const badge=CTYPE_BADGE[v.type]||v.type||'';
+      const link=/^https?:\/\//i.test(v.url||'')?`<a class="review-file" href="${esc(v.url)}" target="_blank" rel="noopener" title="Open edited version" onpointerdown="event.stopPropagation()">🎬</a>`:'';
+      return `<div class="vitem s-${v.status}"><span class="vic">${ic}</span><span class="ctype ct-${v.type}">${esc(badge)}</span><span class="vlbl">${esc(v.label||'(untitled)')}</span>${link}</div>`;}).join('');
+    const done=vs.filter(vDone).length;
+    return `<div class="variants-box"><div class="var-head">${done}/${vs.length} done</div>${rows}</div>`;})();
   const sourceLinks=(()=>{const urls=(c.sourceUrl||'').split(/[\s,]+/).filter(u=>/^https?:\/\//i.test(u));return urls.slice(0,5).map((u,i)=>`<a class="ref-link source-link" href="${esc(u)}" target="_blank" rel="noopener" title="Source video" onpointerdown="event.stopPropagation()">🎥${urls.length>1?(i+1):''}</a>`).join('');})();
   const t=timerInfo(c);const timerEl=t?`<div class="timer ${t.cls}" title="In-Edit SLA: ${slaHours(c)}h">${t.label}</div>`:'';
   d.innerHTML=`<div class="top"><span class="top-l"><span class="tag ${c.track}">${TRACK_LBL[c.track]}</span>${ctypeBadge}${funBadge}</span><span style="display:flex;gap:4px;align-items:center">${newBadge}${chainBadge}${scriptBadge}${c.type==='vsl'?'<span class="vsl-pill">VSL</span>':''}</span></div>${corner}
@@ -932,7 +978,7 @@ function openEdit(id){
   document.getElementById('mName').value=c.name||'';document.getElementById('mHook').value=c.hook||'';
   document.getElementById('mTrack').value=c.track;document.getElementById('mStage').innerHTML=stageOptions(c.stage,c.contentType);
   document.getElementById('mCtype').value=c.contentType||'video_organic';document.getElementById('mFunnel').value=c.funnelStage||'';document.getElementById('mRef').value=c.referenceUrl||'';
-  document.getElementById('mReview').value=c.reviewUrl||'';document.getElementById('mSource').value=c.sourceUrl||'';
+  renderVariants(c.variants||[]);document.getElementById('mSource').value=c.sourceUrl||'';
   populateChain(c.chainTemplateId||'');renderDerivatives(c.id);
   document.getElementById('mMagnetFormat').value=c.magnetFormat||'';document.getElementById('mTargetIcp').value=c.targetIcp||'';document.getElementById('mOptin').value=(c.optinCount!=null?c.optinCount:'');toggleMagnetFields();
   document.getElementById('mOwner').value=c.owner;document.getElementById('mBatch').value=c.batch||'';
@@ -950,7 +996,7 @@ function openNew(){
   document.getElementById('mName').value='';document.getElementById('mHook').value='';
   document.getElementById('mTrack').value='gtm';document.getElementById('mStage').innerHTML=stageOptions('planned','video_organic');
   document.getElementById('mCtype').value='video_organic';document.getElementById('mFunnel').value='';document.getElementById('mRef').value='';
-  document.getElementById('mReview').value='';document.getElementById('mSource').value='';
+  renderVariants([]);document.getElementById('mSource').value='';
   populateChain('');renderDerivatives(null);
   document.getElementById('mMagnetFormat').value='';document.getElementById('mTargetIcp').value='';document.getElementById('mOptin').value='';toggleMagnetFields();
   document.getElementById('mOwner').value='chris';document.getElementById('mBatch').value='Sprint 1';
@@ -970,7 +1016,7 @@ async function saveCard(){
     funnelStage:document.getElementById('mFunnel').value||null,
     referenceUrl:document.getElementById('mRef').value.trim(),
     chainTemplateId:document.getElementById('mChain').value?Number(document.getElementById('mChain').value):null,
-    reviewUrl:document.getElementById('mReview').value.trim(),
+    variants:readVariants(),
     sourceUrl:document.getElementById('mSource').value.trim(),
     magnetFormat:document.getElementById('mMagnetFormat').value||null,
     targetIcp:document.getElementById('mTargetIcp').value.trim()||null,
@@ -1024,16 +1070,22 @@ async function setCadence(ct,patch){
   const r=cadenceRules.find(x=>x.content_type===ct);if(r)Object.assign(r,patch);
   renderCoverage();
 }
-function varCount(c){return (c.reviewUrl||'').split(/[\s,]+/).filter(u=>/^https?:\/\//i.test(u)).length;}
 function coverageRows(){
   const now=Date.now();
+  const live=cards.filter(x=>!x.backlogged);
   return CTYPES.map(c=>{
     const rule=cadenceRules.find(x=>x.content_type===c.v)||{content_type:c.v,target_count:0,period:'sprint',default_owner:null};
     const winDays=rule.period==='quarter'?90:30;
+    const winMs=winDays*86400000;
     const mine=cards.filter(x=>x.contentType===c.v&&!x.backlogged);
-    // each live card counts as its variation count (min 1) — Leo's cuts contribute to the lane goal
-    const inWin=mine.filter(x=>x.liveDate&&new Date(x.liveDate).getTime()>=now-winDays*86400000);
-    const liveIn=inWin.reduce((n,x)=>n+Math.max(1,varCount(x)),0);
+    // Count each COMPLETED/POSTED variant of this type (windowed by completion). Legacy cards with no
+    // variants still count once under their own type when live.
+    let liveIn=0;
+    live.forEach(x=>{
+      const vs=Array.isArray(x.variants)?x.variants:[];
+      liveIn+=vs.filter(v=>v&&v.type===c.v&&(v.status==='completed'||v.status==='posted')&&v.completedAt&&(now-new Date(v.completedAt).getTime())<=winMs).length;
+      if(!vs.length&&x.contentType===c.v&&x.liveDate&&(now-new Date(x.liveDate).getTime())<=winMs)liveIn++;
+    });
     const lastLive=mine.filter(x=>x.liveDate).map(x=>new Date(x.liveDate).getTime()).sort((a,b)=>b-a)[0]||null;
     const periodDays=PERIOD_DAYS[rule.period]||14;
     const target=rule.target_count||0, owner=rule.default_owner||'', asNeeded=target<=0;

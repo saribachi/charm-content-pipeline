@@ -104,10 +104,10 @@ function notifyReviewReady(card) {
   if (!SLACK_WEBHOOK) return;
   const chris = CHRIS_SLACK_ID ? `<@${CHRIS_SLACK_ID}>` : '@Chris';
   const sarah = SARAH_SLACK_ID ? `<@${SARAH_SLACK_ID}>` : '@Sarah';
-  const urls = (card.reviewUrl || '').split(/[\s,]+/).filter((u) => /^https?:\/\//i.test(u));
-  const n = urls.length;
-  const links = n ? ' — ' + urls.map((u, i) => `<${u}|variation ${i + 1}>`).join(' · ') : '';
-  const cnt = n > 1 ? ` (*${n} variations*)` : '';
+  const vs = (Array.isArray(card.variants) ? card.variants : []).filter((v) => v && /^https?:\/\//i.test(v.url || ''));
+  const n = vs.length;
+  const links = n ? ' — ' + vs.map((v) => `<${v.url}|${v.label || 'edit'}>`).join(' · ') : '';
+  const cnt = n > 1 ? ` (*${n} variants*)` : '';
   postSlack(`:eyes: ${chris} ${sarah} *${card.name}* is *ready for review*${cnt}${links}. <${BOARD_URL}|Open the board →>`);
 }
 const TRACK_LABEL = { gtm: 'GTM', cs: 'CS-Flex', vsl: 'VSL' };
@@ -211,7 +211,7 @@ function rowToCard(r) {
     recordWeek: iso(r.record_week), liveDate: iso(r.live_date),
     performance: r.performance || {},
     position: r.position, backlogged: !!r.backlogged,
-    contentType: r.content_type, referenceUrl: r.reference_url, reviewUrl: r.review_url, sourceUrl: r.source_url, funnelStage: r.funnel_stage,
+    contentType: r.content_type, referenceUrl: r.reference_url, reviewUrl: r.review_url, sourceUrl: r.source_url, variants: Array.isArray(r.variants) ? r.variants : [], funnelStage: r.funnel_stage,
     editStartedAt: r.edit_started_at, sprintId: r.sprint_id,
     parentId: r.parent_id, chainTemplateId: r.chain_template_id,
     magnetFormat: r.magnet_format, targetIcp: r.target_icp, giveawayPostId: r.giveaway_post_id, optinCount: r.optin_count,
@@ -333,6 +333,7 @@ app.put('/api/cards/:id', async (req, res) => {
       if (key in b) { sets.push(`${col} = $${i++}`); vals.push(b[key] === '' ? null : b[key]); }
     }
     if (b.performance) { sets.push(`performance = $${i++}`); vals.push(JSON.stringify(b.performance)); }
+    if (Array.isArray(b.variants)) { sets.push(`variants = $${i++}`); vals.push(JSON.stringify(b.variants)); }
     // Auto-stamp live_date the first time a card lands on Live and has no date yet.
     if (b.stage === 'live' || b.stage === 'reviewed') {
       sets.push(`live_date = COALESCE(live_date, CURRENT_DATE)`);

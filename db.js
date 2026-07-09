@@ -253,6 +253,26 @@ export async function initDb() {
   await pool.query(`ALTER TABLE cards ADD COLUMN IF NOT EXISTS review_url TEXT DEFAULT ''`);
   // Raw source video link(s) (Chris -> Leo): the exact files that feed a card, incl. hook variants.
   await pool.query(`ALTER TABLE cards ADD COLUMN IF NOT EXISTS source_url TEXT DEFAULT ''`);
+  // ---- Concept → variants: a card is a concept; each edited version is a typed, status-tracked variant. ----
+  await pool.query(`ALTER TABLE cards ADD COLUMN IF NOT EXISTS variants JSONB DEFAULT '[]'::jsonb`);
+  // One-time migration: fold legacy review_url link(s) into structured variants (each = one edited version).
+  {
+    const { rows: legacy } = await pool.query(
+      `SELECT id, content_type, stage, review_url, updated_at FROM cards
+       WHERE review_url ~ 'https?://' AND (variants IS NULL OR variants = '[]'::jsonb)`);
+    for (const r of legacy) {
+      const urls = String(r.review_url).split(/[\s,]+/).filter((u) => /^https?:\/\//i.test(u));
+      if (!urls.length) continue;
+      const status = ['live', 'reviewed'].includes(r.stage) ? 'posted'
+        : (r.stage === 'scheduled' ? 'completed' : 'edit');
+      const doneAt = status === 'edit' ? null : new Date(r.updated_at).toISOString();
+      const variants = urls.map((u, i) => ({
+        id: 'mig-' + r.id + '-' + i, label: 'Edit ' + (i + 1),
+        type: r.content_type, status, url: u, completedAt: doneAt,
+      }));
+      await pool.query('UPDATE cards SET variants = $1 WHERE id = $2', [JSON.stringify(variants), r.id]);
+    }
+  }
   await pool.query(`CREATE TABLE IF NOT EXISTS chain_templates (
     id SERIAL PRIMARY KEY, name TEXT NOT NULL, trigger_stage TEXT NOT NULL, children JSONB NOT NULL
   )`);
