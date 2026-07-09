@@ -791,6 +791,11 @@ async function onDragUp(e){
     const stage=col.dataset.stage,card=d.card;
     if(stage&&card.stage!==stage){
       const patch={stage};const owner=(TYPE_FLOW[card.contentType]||'video')==='video'?autoOwner(stage):null;if(owner)patch.owner=owner;
+      // Moving a video OUT of Planned into "Recorded & shared": prompt Chris for the raw recording file (it rides along to Leo's handoff).
+      if(stage==='shared'&&card.stage==='planned'&&(TYPE_FLOW[card.contentType]||'video')==='video'&&!(card.sourceUrl&&card.sourceUrl.trim())){
+        const url=prompt('Paste the raw recording file link for Leo — the take you just filmed for this concept.\n(Optional — leave blank to move without it, but Leo needs this to start.)','');
+        if(url&&url.trim()){patch.sourceUrl=url.trim();card.sourceUrl=url.trim();}
+      }
       // Moving a video into "Ready for review": offer to add a first edited variant. Optional — blank skips, never blocks the move.
       if(stage==='scheduled'&&(TYPE_FLOW[card.contentType]||'video')==='video'&&!((card.variants||[]).some(v=>/^https?:\/\//i.test(v&&v.url||'')))){
         const url=prompt('Paste the finished edit link for the first variant (Chris + Sarah review it).\n(Optional — leave blank to move without one.)','');
