@@ -110,7 +110,7 @@ function notifyReviewReady(card) {
   const cnt = n > 1 ? ` (*${n} variants*)` : '';
   postSlack(`:eyes: ${chris} ${sarah} *${card.name}* is *ready for review*${cnt}${links}. <${BOARD_URL}|Open the board →>`);
 }
-const TRACK_LABEL = { gtm: 'GTM', cs: 'CS-Flex', vsl: 'VSL' };
+const TRACK_LABEL = { gtm: 'GTM', cs: 'CS-Flex', vsl: 'VSL', consulting: 'Consulting', cs_engine: 'CS Engine' };
 // Leo's handoff: when a card reaches "Uploaded" he gets @-tagged with a link to the right Drive folder.
 const LEO_SLACK_ID = process.env.LEO_SLACK_ID || 'U09VDPB6WSJ'; // leogzd
 const CHRIS_SLACK_ID = process.env.CHRIS_SLACK_ID || 'UKZ9YEQ1J';
