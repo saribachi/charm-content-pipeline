@@ -161,9 +161,10 @@
   .ref-link{font-size:10px;font-weight:700;text-decoration:none;background:var(--purple-l);color:var(--purple);padding:1px 6px;border-radius:6px;margin-left:4px}
   .ref-link:hover{filter:brightness(.96)}
   .source-link{background:#e0f2fe;color:#0369a1}
-  .rec-files{display:flex;flex-wrap:wrap;gap:3px 8px;align-items:center;margin-top:3px}
-  .rec-file{font-size:10.5px;color:#475569;background:#f1f5f9;border-radius:5px;padding:1px 6px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
-  .rec-folder{font-size:11px;font-weight:700;color:#0369a1;text-decoration:none;white-space:nowrap}
+  .rec-folder{display:inline-block;margin-top:3px;font-size:11px;font-weight:700;color:#0369a1;text-decoration:none;white-space:nowrap}
+  .msrc-files{display:flex;flex-wrap:wrap;gap:3px 6px;align-items:center;margin-top:6px}
+  .msrc-file{font-size:11px;color:#475569;background:#f1f5f9;border-radius:5px;padding:2px 7px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+  .msrc-folder{font-size:11px;font-weight:700;color:#0369a1;text-decoration:none}
   .ing-folder-link{display:inline-block;font-size:12px;font-weight:700;color:#0369a1;text-decoration:none;margin-bottom:6px}
   .prodbox{border:1.5px solid var(--purple);background:#faf6ff;border-radius:10px;padding:12px 14px;margin:4px 0 14px}
   .prodbox .fld{margin-bottom:10px}
@@ -557,7 +558,7 @@
     </div>
     <div class="prodbox">
       <div class="prodhd">🎬 Production files &mdash; recording in, edited versions out</div>
-      <div class="fld"><label>Recording (Chris) <span style="text-transform:none;font-weight:500;color:var(--purple)">— the one raw take for this script (Chris → Leo)</span></label><input id="mSource" type="text" placeholder="https://drive.google.com/file/…"></div>
+      <div class="fld"><label>Recording (Chris) <span style="text-transform:none;font-weight:500;color:var(--purple)">— the one raw take for this script (Chris → Leo)</span></label><input id="mSource" type="text" placeholder="https://drive.google.com/file/…"><div id="mSourceFiles" class="msrc-files"></div></div>
       <div class="fld"><label>Edited versions (variants) <span style="text-transform:none;font-weight:500;color:var(--purple)">— one row per cut: label, its own type, status, file link. Completed / posted count toward that type's goal.</span></label>
         <div id="mVariants" class="veditor"></div>
         <button type="button" class="btn-ghost vadd" onclick="addVariant()">+ Add variant</button></div>
@@ -912,7 +913,7 @@ function cardEl(c){
     const names=[];let folder=null;const plain=[];
     toks.forEach(u=>{const m=u.match(/^(https?:\/\/[^?#]*\/scl\/fo\/[^/]+\/[^/?#]+)([^?#]*)(\?[^#]*)?(?:#(.*))?$/i);if(m){const rl=(m[3]||'').match(/rlkey=[^&]+/);const fld=m[1]+(rl?'?'+rl[0]:'');let name=m[4]?decodeURIComponent(m[4]):'';if(!name&&m[2]){const seg=m[2].split('/').filter(Boolean);name=decodeURIComponent(seg[seg.length-1]||'');}names.push(name||'clip');if(!folder)folder=fld;}else plain.push(u);});
     let html='';
-    if(names.length){html+=`<div class="rec-files">`+names.slice(0,8).map(n=>`<span class="rec-file">${esc(n)}</span>`).join('')+(folder?`<a class="rec-folder" href="${esc(folder)}" target="_blank" rel="noopener" onpointerdown="event.stopPropagation()" onclick="event.stopPropagation()">📁 folder →</a>`:'')+`</div>`;}
+    if(names.length&&folder){html+=`<a class="rec-folder" href="${esc(folder)}" target="_blank" rel="noopener" onpointerdown="event.stopPropagation()" onclick="event.stopPropagation()">📁 ${names.length} recording${names.length>1?'s':''} →</a>`;}
     if(plain.length){html+=plain.slice(0,5).map((u,i)=>`<a class="ref-link source-link" href="${esc(u)}" target="_blank" rel="noopener" title="Recording" onpointerdown="event.stopPropagation()" onclick="event.stopPropagation()">🎥${plain.length>1?(i+1):''}</a>`).join('');}
     return html;})();
   const t=timerInfo(c);const timerEl=t?`<div class="timer ${t.cls}" title="In-Edit SLA: ${slaHours(c)}h">${t.label}</div>`:'';
@@ -1057,6 +1058,8 @@ function renderDerivatives(cardId){
   el.innerHTML=`<div class="derivs"><div class="derivs-h">Derivatives (${kids.length})</div>`+
     kids.map(k=>`<div class="deriv" onclick="closeModal();openEdit('${k.id}')"><span class="ctype ct-${k.contentType}">${CTYPE_BADGE[k.contentType]||k.contentType}</span><span class="deriv-nm">${esc(k.name)}</span><span class="deriv-stage">${esc(stageNm(k.contentType,k.stage))}</span></div>`).join('')+`</div>`;
 }
+function parseRecordings(su){const toks=(su||'').split(/[\s,]+/).filter(u=>/^https?:\/\//i.test(u));const names=[];let folder=null;const plain=[];toks.forEach(u=>{const m=u.match(/^(https?:\/\/[^?#]*\/scl\/fo\/[^/]+\/[^/?#]+)([^?#]*)(\?[^#]*)?(?:#(.*))?$/i);if(m){const rl=(m[3]||'').match(/rlkey=[^&]+/);const fld=m[1]+(rl?'?'+rl[0]:'');let name=m[4]?decodeURIComponent(m[4]):'';if(!name&&m[2]){const seg=m[2].split('/').filter(Boolean);name=decodeURIComponent(seg[seg.length-1]||'');}names.push(name||'clip');if(!folder)folder=fld;}else plain.push(u);});return {names,folder,plain};}
+function renderSourceFiles(su){const el=document.getElementById('mSourceFiles');if(!el)return;const {names,folder}=parseRecordings(su);if(!names.length){el.innerHTML='';return;}el.innerHTML=names.map(n=>`<span class="msrc-file">${esc(n)}</span>`).join('')+(folder?` <a href="${esc(folder)}" target="_blank" rel="noopener" class="msrc-folder">📁 open folder ↗</a>`:'');}
 function openEdit(id){
   editing=id;const c=cards.find(x=>x.id===id);if(!c)return;
   document.getElementById('mTitle').textContent='Edit asset';
@@ -1064,7 +1067,7 @@ function openEdit(id){
   document.getElementById('mName').value=c.name||'';document.getElementById('mHook').value=c.hook||'';
   document.getElementById('mTrack').value=c.track;document.getElementById('mStage').innerHTML=stageOptions(c.stage,c.contentType);
   document.getElementById('mCtype').value=c.contentType||'video_organic';document.getElementById('mFunnel').value=c.funnelStage||'';document.getElementById('mRef').value=c.referenceUrl||'';
-  renderVariants(c.variants||[]);document.getElementById('mSource').value=c.sourceUrl||'';
+  renderVariants(c.variants||[]);document.getElementById('mSource').value=c.sourceUrl||'';renderSourceFiles(c.sourceUrl||'');
   populateChain(c.chainTemplateId||'');renderDerivatives(c.id);
   document.getElementById('mMagnetFormat').value=c.magnetFormat||'';document.getElementById('mTargetIcp').value=c.targetIcp||'';document.getElementById('mOptin').value=(c.optinCount!=null?c.optinCount:'');toggleMagnetFields();
   document.getElementById('mOwner').value=c.owner;document.getElementById('mBatch').value=c.batch||'';
