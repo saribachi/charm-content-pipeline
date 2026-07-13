@@ -1,6 +1,15 @@
-// Studio session ingest: Dropbox folder -> Deepgram transcript -> text-match to card scripts.
+// Studio session ingest: Dropbox folder -> ffmpeg audio (byte-range, no full download) -> Deepgram -> match to planned cards.
 // Keys live in the meta table (setting_*) so they stay out of git and out of the flaky Coolify env path.
 import { pool } from './db.js';
+import http from 'http';
+import os from 'os';
+import fs from 'fs';
+import path from 'path';
+import { execFile } from 'child_process';
+import { promisify } from 'util';
+const execFileP = promisify(execFile);
+const HOOK_SECONDS = 90;   // only transcribe the first ~90s (the hook) — enough to identify a clip
+const CHUNK = 4 * 1024 * 1024;
 
 const KNOWN_SETTINGS = ['deepgram_api_key', 'dropbox_token', 'dropbox_app_key', 'dropbox_app_secret', 'dropbox_refresh_token'];
 
@@ -63,12 +72,21 @@ export function matchTranscript(transcript, cards) {
     .sort((a, b) => b.score - a.score);
 }
 
-// ---- Deepgram (URL-based: it fetches the file itself, no local download) ----
-export async function deepgramTranscribe(url, key) {
+// Slate/direction stripping: takes are ad-libbed with "take one / sync sound / action / slow it down 20%"
+// noise. Cut everything up to the LAST "action" cue; that's where the real read starts.
+export function stripSlate(t) {
+  const s = String(t || '');
+  const ms = [...s.matchAll(/\baction[.,!]?/gi)];
+  const core = (ms.length ? s.slice(ms[ms.length - 1].index + ms[ms.length - 1][0].length) : s).trim();
+  return core.length > 40 ? core : s.trim();  // fall back to full text if the cut leaves too little
+}
+
+// ---- Deepgram (file upload of the small extracted audio) ----
+export async function deepgramFile(audioBuf, key) {
   const r = await fetch('https://api.deepgram.com/v1/listen?model=nova-2&smart_format=true&punctuate=true', {
     method: 'POST',
-    headers: { Authorization: 'Token ' + key, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ url }),
+    headers: { Authorization: 'Token ' + key, 'Content-Type': 'audio/wav' },
+    body: audioBuf,
   });
   if (!r.ok) throw new Error('deepgram ' + r.status + ': ' + (await r.text()).slice(0, 200));
   const d = await r.json();
@@ -88,27 +106,85 @@ async function dbx(pathname, token, body) {
   return txt ? JSON.parse(txt) : {};
 }
 const MEDIA = /\.(mp4|mov|m4v|mkv|webm|wav|mp3|m4a|aac)$/i;
+// Shared links don't support recursive list_folder — BFS each subfolder (A Cam / B Cam / …).
 export async function dropboxList(sharedUrl, token) {
-  let d = await dbx('/files/list_folder', token, { path: '', shared_link: { url: sharedUrl }, recursive: true });
-  let entries = d.entries || [];
-  while (d.has_more) { d = await dbx('/files/list_folder/continue', token, { cursor: d.cursor }); entries = entries.concat(d.entries || []); }
-  return entries.filter((e) => e['.tag'] === 'file' && MEDIA.test(e.name || ''));
-}
-async function dropboxTempLink(fileId, token) {
-  const d = await dbx('/files/get_temporary_link', token, { path: fileId });
-  return d.link;
-}
-async function dropboxShareLink(fileId, token) {
-  try {
-    const d = await dbx('/sharing/create_shared_link_with_settings', token, { path: fileId });
-    return d.url || null;
-  } catch (e) {
-    if (/409|shared_link_already_exists/.test(String(e.message))) {
-      const d = await dbx('/sharing/list_shared_links', token, { path: fileId });
-      return (d.links && d.links[0] && d.links[0].url) || null;
+  const files = [];
+  const queue = ['']; // paths relative to the shared root; shared-link entries lack path_lower, so build from names
+  while (queue.length) {
+    const base = queue.shift();
+    let d = await dbx('/files/list_folder', token, { path: base, shared_link: { url: sharedUrl } });
+    for (;;) {
+      for (const e of d.entries || []) {
+        const full = base + '/' + e.name;
+        if (e['.tag'] === 'folder') queue.push(full);
+        else if (e['.tag'] === 'file' && MEDIA.test(e.name || '')) files.push({ ...e, path: full });
+      }
+      if (!d.has_more) break;
+      d = await dbx('/files/list_folder/continue', token, { cursor: d.cursor });
     }
-    return null;
   }
+  return files;
+}
+// Fetch one byte range of a shared-link file (no full download; works on free accounts, no mounting).
+async function dbxRange(sharedUrl, filePath, token, start, end) {
+  const r = await fetch('https://content.dropboxapi.com/2/sharing/get_shared_link_file', {
+    method: 'POST',
+    headers: {
+      Authorization: 'Bearer ' + token,
+      'Dropbox-API-Arg': JSON.stringify({ url: sharedUrl, path: filePath }),
+      Range: `bytes=${start}-${end}`,
+    },
+  });
+  if (r.status !== 206 && r.status !== 200) throw new Error('dropbox range ' + r.status + ': ' + (await r.text()).slice(0, 200));
+  const buf = Buffer.from(await r.arrayBuffer());
+  const cr = r.headers.get('content-range');
+  const total = cr ? parseInt(cr.split('/')[1], 10) : buf.length;
+  return { buf, total };
+}
+// Serve a shared-link file over local HTTP so ffmpeg can range-seek it (pulls only the audio bytes it needs).
+function serveRange(sharedUrl, filePath, token) {
+  return new Promise((resolve) => {
+    const server = http.createServer(async (req, res) => {
+      try {
+        const h = req.headers.range || 'bytes=0-';
+        const mm = h.replace('bytes=', '').split('-');
+        const start = parseInt(mm[0] || '0', 10);
+        let end = mm[1] ? parseInt(mm[1], 10) : start + CHUNK - 1;
+        if (end - start + 1 > CHUNK) end = start + CHUNK - 1;
+        const { buf, total } = await dbxRange(sharedUrl, filePath, token, start, end);
+        res.writeHead(206, {
+          'Accept-Ranges': 'bytes',
+          'Content-Range': `bytes ${start}-${start + buf.length - 1}/${total}`,
+          'Content-Length': buf.length,
+        });
+        res.end(buf);
+      } catch (e) { try { res.writeHead(500); res.end(); } catch {} }
+    });
+    server.listen(0, '127.0.0.1', () => resolve(server));
+  });
+}
+// Extract the first HOOK_SECONDS of audio as a small mono 16kHz wav, via the range proxy + ffmpeg.
+async function extractAudio(sharedUrl, filePath, token) {
+  const server = await serveRange(sharedUrl, filePath, token);
+  const port = server.address().port;
+  const out = path.join(os.tmpdir(), 'ing_' + Date.now() + '_' + Math.floor(Math.random() * 1e6) + '.wav');
+  try {
+    await execFileP('ffmpeg', ['-nostdin', '-loglevel', 'error', '-i', `http://127.0.0.1:${port}/f`,
+      '-vn', '-ac', '1', '-ar', '16000', '-t', String(HOOK_SECONDS), '-y', out],
+      { timeout: 10 * 60 * 1000 });
+    return fs.readFileSync(out);
+  } finally {
+    server.close();
+    try { fs.unlinkSync(out); } catch {}
+  }
+}
+// Build an openable per-file Dropbox web URL from the folder shared link + the file's path (+ rlkey).
+function fileWebUrl(sharedUrl, filePath) {
+  const q = sharedUrl.indexOf('?');
+  const base = q >= 0 ? sharedUrl.slice(0, q) : sharedUrl;
+  const rl = (sharedUrl.match(/[?&](rlkey=[^&]+)/) || [, ''])[1];
+  const enc = String(filePath || '').split('/').map(encodeURIComponent).join('/');
+  return base.replace(/\/$/, '') + enc + (rl ? '?' + rl : '');
 }
 
 // ---- orchestration ----
@@ -121,25 +197,26 @@ export async function startIngest(sharedUrl) {
   const sessionId = 'ses' + Date.now();
   for (const f of files) {
     await pool.query(
-      `INSERT INTO ingest_items (session_id, file_id, file_name, status) VALUES ($1,$2,$3,'pending')`,
-      [sessionId, f.id, f.name]);
+      `INSERT INTO ingest_items (session_id, file_id, file_name, shared_url, file_path, status) VALUES ($1,$2,$3,$4,$5,'pending')`,
+      [sessionId, f.id, f.name, sharedUrl, f.path]);
   }
-  processIngest(sessionId, token, dgkey).catch((e) => console.error('ingest run failed', e.message));
+  processIngest(sessionId, dgkey).catch((e) => console.error('ingest run failed', e.message));
   return { sessionId, count: files.length };
 }
-async function processIngest(sessionId, token, dgkey) {
-  const cards = (await pool.query('SELECT id,name,script FROM cards')).rows;
+async function processIngest(sessionId, dgkey) {
+  // Match ONLY against planned-stage cards — every planned card should have a matching recording.
+  const planned = (await pool.query(`SELECT id,name,script FROM cards WHERE stage='planned'`)).rows;
   const { rows: items } = await pool.query(`SELECT * FROM ingest_items WHERE session_id=$1 AND status='pending' ORDER BY id`, [sessionId]);
   for (const it of items) {
     try {
-      const tmp = await dropboxTempLink(it.file_id, token);
-      const transcript = await deepgramTranscribe(tmp, dgkey);
-      const scored = matchTranscript(transcript, cards);
+      const token = await dropboxAccessToken(); // refresh per file (long runs can outlive a token)
+      const audio = await extractAudio(it.shared_url, it.file_path, token);
+      const rawTx = await deepgramFile(audio, dgkey);
+      const scored = matchTranscript(stripSlate(rawTx), planned);
       const top = scored[0] || { cardId: null, score: 0 };
-      const share = await dropboxShareLink(it.file_id, token);
       await pool.query(
         `UPDATE ingest_items SET transcript=$1, proposed_card_id=$2, confidence=$3, file_url=$4, status='matched' WHERE id=$5`,
-        [transcript.slice(0, 6000), top.cardId, top.score, share || tmp, it.id]);
+        [rawTx.slice(0, 6000), top.cardId, top.score, fileWebUrl(it.shared_url, it.file_path), it.id]);
     } catch (e) {
       await pool.query(`UPDATE ingest_items SET status='error', transcript=$1 WHERE id=$2`, [('⚠ ' + e.message).slice(0, 400), it.id]);
     }

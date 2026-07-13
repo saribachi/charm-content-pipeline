@@ -163,6 +163,8 @@ export async function initDb() {
       session_id       TEXT NOT NULL,
       file_id          TEXT,
       file_name        TEXT,
+      shared_url       TEXT DEFAULT '',
+      file_path        TEXT DEFAULT '',
       file_url         TEXT DEFAULT '',
       transcript       TEXT DEFAULT '',
       proposed_card_id TEXT,
@@ -170,6 +172,8 @@ export async function initDb() {
       status           TEXT DEFAULT 'pending',
       created_at       TIMESTAMPTZ DEFAULT now()
     );
+    ALTER TABLE ingest_items ADD COLUMN IF NOT EXISTS shared_url TEXT DEFAULT '';
+    ALTER TABLE ingest_items ADD COLUMN IF NOT EXISTS file_path  TEXT DEFAULT '';
   `);
 
   // Migration: add script column to pre-existing deployments.
