@@ -158,6 +158,18 @@ export async function initDb() {
       k TEXT PRIMARY KEY,
       v TEXT
     );
+    CREATE TABLE IF NOT EXISTS ingest_items (
+      id               SERIAL PRIMARY KEY,
+      session_id       TEXT NOT NULL,
+      file_id          TEXT,
+      file_name        TEXT,
+      file_url         TEXT DEFAULT '',
+      transcript       TEXT DEFAULT '',
+      proposed_card_id TEXT,
+      confidence       REAL DEFAULT 0,
+      status           TEXT DEFAULT 'pending',
+      created_at       TIMESTAMPTZ DEFAULT now()
+    );
   `);
 
   // Migration: add script column to pre-existing deployments.

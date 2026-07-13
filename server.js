@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 import path from 'path';
 import { pool, initDb, resetToSeed, bankCategories } from './db.js';
+import { settingsStatus, setSetting, startIngest, ingestItems, confirmIngest } from './ingest.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -227,6 +228,28 @@ const FIELDS = {
   chainTemplateId: 'chain_template_id', reviewUrl: 'review_url', sourceUrl: 'source_url',
   magnetFormat: 'magnet_format', targetIcp: 'target_icp', optinCount: 'optin_count',
 };
+
+// ---------- Studio session ingest (Dropbox -> Deepgram -> match to card) ----------
+app.get('/api/settings/status', async (_req, res) => {
+  try { res.json(await settingsStatus()); } catch (e) { res.status(500).json({ error: e.message }); }
+});
+app.post('/api/settings', async (req, res) => {
+  try { await setSetting(req.body.key, (req.body.value || '').trim()); res.json({ ok: true }); }
+  catch (e) { res.status(400).json({ error: e.message }); }
+});
+app.post('/api/ingest', async (req, res) => {
+  try {
+    const url = (req.body.url || '').trim();
+    if (!/^https?:\/\//.test(url)) return res.status(400).json({ error: 'Paste a Dropbox folder link.' });
+    res.json(await startIngest(url));
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+app.get('/api/ingest/:sid', async (req, res) => {
+  try { res.json(await ingestItems(req.params.sid)); } catch (e) { res.status(500).json({ error: e.message }); }
+});
+app.post('/api/ingest/confirm', async (req, res) => {
+  try { res.json(await confirmIngest(req.body.items || [])); } catch (e) { res.status(500).json({ error: e.message }); }
+});
 
 app.get('/api/state', async (_req, res) => {
   try {

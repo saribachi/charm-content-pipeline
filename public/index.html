@@ -180,6 +180,26 @@
   .vitem .vlbl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
   .vitem.s-planned{opacity:.6}
   .vitem .review-file{margin-left:auto}
+  .ingest-btn{margin-left:auto;border:none;background:var(--gtm);color:#fff;border-radius:8px;padding:7px 14px;font-family:inherit;font-weight:700;font-size:13px;cursor:pointer}
+  .ing-setup{background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:10px 12px;margin-bottom:10px}
+  .ing-setup-hd{font-size:12px;font-weight:700;color:#9a3412;margin-bottom:6px}
+  .ing-set-row{display:flex;gap:6px;align-items:center;margin-bottom:6px}
+  .ing-set-row label{font-size:12px;width:110px;color:var(--muted)}
+  .ing-set-row input{flex:1;padding:5px 8px;border:1px solid var(--line);border-radius:6px;font-family:inherit;font-size:12px}
+  .ing-start{display:flex;gap:8px;margin-bottom:8px}
+  .ing-start input{flex:1;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-family:inherit;font-size:13px}
+  .ing-msg{font-size:12px;color:var(--muted);margin-bottom:8px;min-height:16px}
+  .ing-list{display:flex;flex-direction:column;gap:8px;max-height:52vh;overflow:auto}
+  .ing-row{border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+  .ing-row.pending{opacity:.7} .ing-row.err{border-color:#fecaca;background:#fef2f2} .ing-row.done{border-color:#bbf7d0;background:#f0fdf4}
+  .ing-file{font-size:13px;font-weight:600} .ing-open{font-size:11px;color:var(--gtm);margin-left:6px;font-weight:600}
+  .ing-mid{font-size:12px;color:var(--muted)}
+  .ing-snip{font-size:12px;color:#555;font-style:italic;margin:4px 0}
+  .ing-assign{display:flex;gap:8px;align-items:center}
+  .ing-sel{flex:1;padding:5px 8px;border:1px solid var(--line);border-radius:6px;font-family:inherit;font-size:12px}
+  .ing-conf{font-size:11px;font-weight:700;padding:2px 7px;border-radius:99px;white-space:nowrap}
+  .ing-conf.hi{background:#dcfce7;color:#166534} .ing-conf.mid{background:#fef9c3;color:#854d0e} .ing-conf.lo{background:#fee2e2;color:#991b1b}
+  .ing-empty{font-size:12px;color:var(--muted);text-align:center;padding:16px}
   .review-file{display:inline-block;margin:6px 0 2px;font-size:11px;font-weight:700;color:var(--ok);background:#e7f7ee;padding:3px 10px;border-radius:7px;text-decoration:none}
   .review-file:hover{filter:brightness(.95)}
   .backlog{margin-top:18px;border:1px dashed var(--line);border-radius:14px;background:var(--bg);padding:14px 16px}
@@ -332,6 +352,7 @@
     <div class="tab" data-tab="bank" onclick="switchTab('bank')">Leo's idea bank</div>
     <div class="tab" data-tab="links" onclick="switchTab('links')">Links &amp; docs</div>
     <div class="tab" data-tab="ref" onclick="switchTab('ref')">Cadence &amp; rules</div>
+    <button class="ingest-btn" onclick="openIngest()">📥 Ingest session</button>
   </div>
 
   <!-- COVERAGE (default home) -->
@@ -583,6 +604,24 @@
   </div>
 </div>
 
+<div class="overlay" id="ingest" onclick="if(event.target.id==='ingest')closeIngest()">
+  <div class="modal comp">
+    <h3>📥 Ingest a studio session</h3>
+    <div class="msub">Paste the Dropbox folder the studio shares. Each clip is transcribed, matched to the right card by its script, and shown here for you to confirm before anything attaches.</div>
+    <div id="ingSetup" class="ing-setup hide"></div>
+    <div class="ing-start">
+      <input id="ingUrl" type="text" placeholder="https://www.dropbox.com/scl/fo/…  (the session folder link)">
+      <button class="btn" id="ingGo" onclick="runIngest()">Start</button>
+    </div>
+    <div id="ingMsg" class="ing-msg"></div>
+    <div id="ingList" class="ing-list"></div>
+    <div class="modal-ft">
+      <button class="btn-ghost" onclick="closeIngest()">Close</button>
+      <div class="right"><button class="btn" id="ingConfirm" onclick="confirmIngest()" style="display:none">Confirm &amp; attach</button></div>
+    </div>
+  </div>
+</div>
+
 <script>
 // Three flow families behind pills. Video is unchanged (Leo's daily use).
 const FLOWS={
@@ -689,6 +728,19 @@ async function api(method,url,body){
     return await r.json();
   }catch(e){setSync(false,'Offline — retry');throw e;}
 }
+// ---------- studio session ingest ----------
+let ingSession=null, ingPoll=null;
+async function jpost(url,body){const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||('HTTP '+r.status));return d;}
+async function jget(url){const r=await fetch(url);const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||('HTTP '+r.status));return d;}
+function openIngest(){document.getElementById('ingest').classList.add('show');document.getElementById('ingList').innerHTML='';document.getElementById('ingMsg').textContent='';document.getElementById('ingConfirm').style.display='none';ingSession=null;refreshIngSetup();}
+function closeIngest(){document.getElementById('ingest').classList.remove('show');if(ingPoll){clearInterval(ingPoll);ingPoll=null;}}
+async function refreshIngSetup(){const box=document.getElementById('ingSetup');let st={};try{st=await jget('/api/settings/status');}catch(e){}const rows=[];if(!st.dropbox_token)rows.push(setRow('Dropbox token','dropbox_token'));if(!st.deepgram_api_key)rows.push(setRow('Deepgram key','deepgram_api_key'));if(rows.length){box.classList.remove('hide');box.innerHTML='<div class="ing-setup-hd">Connect once to enable ingest:</div>'+rows.join('');}else{box.classList.add('hide');box.innerHTML='';}}
+function setRow(label,key){return `<div class="ing-set-row"><label>${label}</label><input id="set_${key}" type="password" placeholder="paste ${label}"><button class="btn-ghost" onclick="saveSetting('${key}')">Save</button></div>`;}
+async function saveSetting(key){const el=document.getElementById('set_'+key);const v=(el.value||'').trim();if(!v)return;try{await jpost('/api/settings',{key,value:v});document.getElementById('ingMsg').textContent=key.replace(/_/g,' ')+' saved.';await refreshIngSetup();}catch(e){document.getElementById('ingMsg').textContent='⚠ '+e.message;}}
+async function runIngest(){const url=document.getElementById('ingUrl').value.trim();const msg=document.getElementById('ingMsg');if(!url){msg.textContent='Paste the Dropbox folder link first.';return;}const go=document.getElementById('ingGo');go.disabled=true;msg.textContent='Listing the folder…';try{const r=await jpost('/api/ingest',{url});ingSession=r.sessionId;msg.textContent=`Found ${r.count} clip${r.count>1?'s':''}. Transcribing…`;if(ingPoll)clearInterval(ingPoll);pollIng();ingPoll=setInterval(pollIng,4000);}catch(e){msg.textContent='⚠ '+e.message;}go.disabled=false;}
+async function pollIng(){if(!ingSession)return;try{const rows=await jget('/api/ingest/'+ingSession);renderIng(rows);if(rows.length&&rows.every(r=>r.status!=='pending')){clearInterval(ingPoll);ingPoll=null;}}catch(e){}}
+function renderIng(rows){const list=document.getElementById('ingList');if(!rows.length){list.innerHTML='<div class="ing-empty">No clips found.</div>';return;}const sorted=cards.slice().sort((a,b)=>(a.name||'').localeCompare(b.name||''));const opts=(sel)=>['<option value="">— skip / no match —</option>'].concat(sorted.map(c=>`<option value="${c.id}" ${c.id===sel?'selected':''}>${esc(TRACK_LBL[c.track]||c.track)} · ${esc(c.name)}</option>`)).join('');let pending=0,ready=0;list.innerHTML=rows.map(r=>{if(r.status==='pending'){pending++;return `<div class="ing-row pending"><div class="ing-file">🎞 ${esc(r.fileName)}</div><div class="ing-mid">transcribing…</div></div>`;}if(r.status==='error'){return `<div class="ing-row err"><div class="ing-file">🎞 ${esc(r.fileName)}</div><div class="ing-mid">${esc(r.transcript||'error')}</div></div>`;}if(r.status==='confirmed'){return `<div class="ing-row done"><div class="ing-file">✅ ${esc(r.fileName)}</div><div class="ing-mid">attached to card</div></div>`;}ready++;const pct=Math.round((r.confidence||0)*100);const band=pct>=50?'hi':pct>=30?'mid':'lo';const snip=esc((r.transcript||'').slice(0,150));return `<div class="ing-row"><div class="ing-file">🎞 ${esc(r.fileName)} ${r.fileUrl?`<a href="${esc(r.fileUrl)}" target="_blank" rel="noopener" class="ing-open">open</a>`:''}</div><div class="ing-snip">&ldquo;${snip}…&rdquo;</div><div class="ing-assign"><span class="ing-conf ${band}">${pct}%</span><select class="ing-sel" data-id="${r.id}">${opts(r.proposedCardId)}</select></div></div>`;}).join('');document.getElementById('ingConfirm').style.display=ready?'':'none';const msg=document.getElementById('ingMsg');msg.textContent=pending?`Transcribing ${pending} more… ready ones are assignable now.`:(ready?`${ready} clip${ready>1?'s':''} matched — check the cards, then Confirm & attach.`:'All clips handled.');}
+async function confirmIngest(){const items=[...document.querySelectorAll('.ing-sel')].map(s=>({id:+s.dataset.id,cardId:s.value})).filter(x=>x.cardId);if(!items.length){document.getElementById('ingMsg').textContent='Pick a card for at least one clip first.';return;}const btn=document.getElementById('ingConfirm');btn.disabled=true;try{const d=await jpost('/api/ingest/confirm',{items});await loadState();document.getElementById('ingMsg').textContent=`Attached ${d.length} clip${d.length>1?'s':''} to their cards.`;await pollIng();}catch(e){document.getElementById('ingMsg').textContent='⚠ '+e.message;}btn.disabled=false;}
 async function loadState(){
   const s=await api('GET','/api/state');
   cards=s.cards; bankItems=s.bankItems||[]; bankCategories=s.bankCategories||[]; cadenceRules=s.cadenceRules||[]; capacity=s.capacity||[]; activeSprint=s.sprint||null; chainTemplates=s.chainTemplates||[];
