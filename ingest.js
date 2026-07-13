@@ -178,13 +178,13 @@ async function extractAudio(sharedUrl, filePath, token) {
     try { fs.unlinkSync(out); } catch {}
   }
 }
-// Build an openable per-file Dropbox web URL from the folder shared link + the file's path (+ rlkey).
-function fileWebUrl(sharedUrl, filePath) {
+// Per-file deep links aren't possible for link-only shared files (not in the account), so return the
+// shared FOLDER link (the member can open it) — the row/card shows the filename to find the exact clip.
+function fileWebUrl(sharedUrl) {
   const q = sharedUrl.indexOf('?');
   const base = q >= 0 ? sharedUrl.slice(0, q) : sharedUrl;
   const rl = (sharedUrl.match(/[?&](rlkey=[^&]+)/) || [, ''])[1];
-  const enc = String(filePath || '').split('/').map(encodeURIComponent).join('/');
-  return base.replace(/\/$/, '') + enc + (rl ? '?' + rl : '');
+  return base + (rl ? '?' + rl : '');
 }
 
 // ---- orchestration ----
@@ -216,7 +216,7 @@ async function processIngest(sessionId, dgkey) {
       const top = scored[0] || { cardId: null, score: 0 };
       await pool.query(
         `UPDATE ingest_items SET transcript=$1, proposed_card_id=$2, confidence=$3, file_url=$4, status='matched' WHERE id=$5`,
-        [rawTx.slice(0, 6000), top.cardId, top.score, fileWebUrl(it.shared_url, it.file_path), it.id]);
+        [rawTx.slice(0, 6000), top.cardId, top.score, fileWebUrl(it.shared_url) + '#' + encodeURIComponent(it.file_name || ''), it.id]);
     } catch (e) {
       await pool.query(`UPDATE ingest_items SET status='error', transcript=$1 WHERE id=$2`, [('⚠ ' + e.message).slice(0, 400), it.id]);
     }
