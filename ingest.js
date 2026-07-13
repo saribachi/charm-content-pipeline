@@ -2,7 +2,7 @@
 // Keys live in the meta table (setting_*) so they stay out of git and out of the flaky Coolify env path.
 import { pool } from './db.js';
 
-const KNOWN_SETTINGS = ['deepgram_api_key', 'dropbox_token'];
+const KNOWN_SETTINGS = ['deepgram_api_key', 'dropbox_token', 'dropbox_app_key', 'dropbox_app_secret', 'dropbox_refresh_token'];
 
 export async function getSetting(k) {
   if (k === 'deepgram_api_key' && process.env.DEEPGRAM_API_KEY) return process.env.DEEPGRAM_API_KEY;
@@ -16,9 +16,31 @@ export async function setSetting(k, v) {
     ['setting_' + k, v]);
 }
 export async function settingsStatus() {
-  const out = {};
-  for (const k of KNOWN_SETTINGS) out[k] = !!(await getSetting(k));
-  return out;
+  const deepgram = !!(await getSetting('deepgram_api_key'));
+  const direct = !!(await getSetting('dropbox_token'));
+  const refresh = !!(await getSetting('dropbox_refresh_token')) && !!(await getSetting('dropbox_app_key')) && !!(await getSetting('dropbox_app_secret'));
+  return { deepgram, dropbox: direct || refresh };
+}
+
+// Mint a fresh short-lived Dropbox access token from the stored refresh token (set-and-forget),
+// falling back to a directly-pasted token for quick manual testing.
+async function dropboxAccessToken() {
+  const rt = await getSetting('dropbox_refresh_token');
+  const key = await getSetting('dropbox_app_key');
+  const secret = await getSetting('dropbox_app_secret');
+  if (rt && key && secret) {
+    const r = await fetch('https://api.dropboxapi.com/oauth2/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded', Authorization: 'Basic ' + Buffer.from(key + ':' + secret).toString('base64') },
+      body: 'grant_type=refresh_token&refresh_token=' + encodeURIComponent(rt),
+    });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error('dropbox oauth ' + r.status + ': ' + JSON.stringify(d).slice(0, 200));
+    return d.access_token;
+  }
+  const direct = await getSetting('dropbox_token');
+  if (direct) return direct;
+  throw new Error('Dropbox not connected yet.');
 }
 
 // ---- text matching: the footage is Chris reading a script, so the transcript is near-verbatim ----
@@ -91,10 +113,9 @@ async function dropboxShareLink(fileId, token) {
 
 // ---- orchestration ----
 export async function startIngest(sharedUrl) {
-  const token = await getSetting('dropbox_token');
   const dgkey = await getSetting('deepgram_api_key');
-  if (!token) throw new Error('Dropbox not connected yet — add the token in the Ingest panel.');
   if (!dgkey) throw new Error('Deepgram not connected yet — add the key in the Ingest panel.');
+  const token = await dropboxAccessToken(); // throws if Dropbox not connected
   const files = await dropboxList(sharedUrl, token);
   if (!files.length) throw new Error('No video/audio files found in that Dropbox folder.');
   const sessionId = 'ses' + Date.now();
