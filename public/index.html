@@ -910,7 +910,7 @@ function cardEl(c){
     return `<div class="variants-box"><div class="var-head">${done}/${vs.length} done</div>${rows}</div>`;})();
   const sourceLinks=(()=>{const toks=(c.sourceUrl||'').split(/[\s,]+/).filter(u=>/^https?:\/\//i.test(u));if(!toks.length)return '';
     const names=[];let folder=null;const plain=[];
-    toks.forEach(u=>{const h=u.indexOf('#');if(h>=0){names.push(decodeURIComponent(u.slice(h+1)));if(!folder)folder=u.slice(0,h);}else plain.push(u);});
+    toks.forEach(u=>{const m=u.match(/^(https?:\/\/[^?#]*\/scl\/fo\/[^/]+\/[^/?#]+)([^?#]*)(\?[^#]*)?(?:#(.*))?$/i);if(m){const rl=(m[3]||'').match(/rlkey=[^&]+/);const fld=m[1]+(rl?'?'+rl[0]:'');let name=m[4]?decodeURIComponent(m[4]):'';if(!name&&m[2]){const seg=m[2].split('/').filter(Boolean);name=decodeURIComponent(seg[seg.length-1]||'');}names.push(name||'clip');if(!folder)folder=fld;}else plain.push(u);});
     let html='';
     if(names.length){html+=`<div class="rec-files">`+names.slice(0,8).map(n=>`<span class="rec-file">${esc(n)}</span>`).join('')+(folder?`<a class="rec-folder" href="${esc(folder)}" target="_blank" rel="noopener" onpointerdown="event.stopPropagation()" onclick="event.stopPropagation()">📁 folder →</a>`:'')+`</div>`;}
     if(plain.length){html+=plain.slice(0,5).map((u,i)=>`<a class="ref-link source-link" href="${esc(u)}" target="_blank" rel="noopener" title="Recording" onpointerdown="event.stopPropagation()" onclick="event.stopPropagation()">🎥${plain.length>1?(i+1):''}</a>`).join('');}
