@@ -327,6 +327,10 @@ export async function initDb() {
 
   // Consolidate the video "Recorded" + "Uploaded" stages into one "Recorded & shared with editor" (id 'shared').
   await pool.query(`UPDATE cards SET stage='shared' WHERE stage='recorded'`);
+  // Two-pipeline (Jul 20 2026): planning video flow ends at the editor handoff. Finished-ad tracking moved to
+  // the Ad Library, so video-type cards past "In edit" collapse into one terminal 'delivered' stage.
+  await pool.query(`UPDATE cards SET stage='delivered'
+    WHERE stage IN ('scheduled','live','reviewed') AND content_type IN ('ad','vsl','video_organic')`);
   await pool.query(`UPDATE chain_templates SET trigger_stage='shared' WHERE trigger_stage='recorded'`);
   // Trim removed content types (welcome_flow_email, landing_page): deactivate their cadence lanes and drop from the lead-magnet chain.
   await pool.query(`UPDATE cadence_rules SET active=false WHERE content_type IN ('welcome_flow_email','landing_page')`);

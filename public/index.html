@@ -506,22 +506,20 @@
         <button class="btn-ghost" onclick="sendTestDigest(this)" style="margin-top:6px">Send test digest now</button>
       </div>
       <div class="ref-card">
-        <h3>One card = a concept → many edited versions</h3>
+        <h3>Two pipelines: Planning → Ad Library</h3>
         <div class="cadence">
-          <div class="cad-row"><div class="cad-day">Chris</div><div class="cad-txt"><b>1 script + 1 recording per card.</b> The card is the <b>concept</b> — paste the script and drop the raw take into <b>Recording (Chris)</b>.</div></div>
-          <div class="cad-row"><div class="cad-day">Leo</div><div class="cad-txt"><b>Breaks each recording into edited versions (variants).</b> Every edit is its own row under <b>Edited versions</b> — with a label (Hook A), its <b>own type</b> (ad / organic / VSL), a <b>status</b>, and the file link. All on one card, so it stays clean.</div></div>
-          <div class="cad-row"><div class="cad-day">The goal</div><div class="cad-txt">Mark a variant <b>Completed</b> when the edit is done. <b>Each completed variant counts toward its own type's Coverage target</b> — so one concept can feed the Ad lane and the Organic lane at once, and Leo's output is measured the moment it's finished, not only when posted.</div></div>
+          <div class="cad-row"><div class="cad-day">Planning</div><div class="cad-txt">This board = <b>concepts</b>. A card is 1 script + the raw recording, and its job <b>ends when it's handed to the editor</b>. Cards stacking up in <b>In edit</b> are the editor's queue — the bottleneck, made visible.</div></div>
+          <div class="cad-row"><div class="cad-day">Ad Library</div><div class="cad-txt">Every <b>finished ad</b> lives in the <b>Ad Library</b> tab as its own asset — not back on the concept card. Named <code>TRACK_Concept_Hook_YYYYMMDD</code>, with status + Meta performance.</div></div>
+          <div class="cad-row"><div class="cad-day">Why</div><div class="cad-txt">One concept spawns many finished cuts on a different timeline. Keeping them separate means no more reverse-matching files to concepts — and the Ad Library becomes the clean growth view.</div></div>
         </div>
-        <p style="margin-top:12px;font-size:12px;color:var(--muted)">At <b>Ready for review</b>, Chris + Sarah get pinged with the full set of variants to approve at once.</p>
       </div>
       <div class="ref-card">
         <h3>Pipeline stages</h3>
         <div class="stage-flow">
           <span class="s">Planned</span><span class="arr">&rarr;</span><span class="s">Recorded &amp; shared with editor</span><span class="arr">&rarr;</span>
-          <span class="s">In edit</span><span class="arr">&rarr;</span><span class="s">Ready for review</span><span class="arr">&rarr;</span>
-          <span class="s">Live</span><span class="arr">&rarr;</span><span class="s">Reviewed</span>
+          <span class="s">In edit</span><span class="arr">&rarr;</span><span class="s">Delivered</span>
         </div>
-        <p style="margin-top:12px;font-size:12.5px;color:var(--muted)"><b>Video</b> flow above. <b>Written</b> content uses Planned &rarr; Drafted &rarr; In review &rarr; Approved &rarr; Scheduled &rarr; Live &rarr; Reviewed. Switch with the <b>Video / Written / Lead magnets</b> pills on the board. At <b>Ready for review</b> the editor attaches the finished-file link and Chris + Sarah are tagged.</p>
+        <p style="margin-top:12px;font-size:12.5px;color:var(--muted)"><b>Video</b> flow above — it ends at <b>Delivered</b> (handed off; the finished ad goes to the <b>Ad Library</b>). <b>Written</b> content uses Planned &rarr; Drafted &rarr; In review &rarr; Approved &rarr; Scheduled &rarr; Live &rarr; Reviewed (published in place). Switch with the <b>Video / Written / Lead magnets</b> pills on the board.</p>
       </div>
       <div class="ref-card">
         <h3>Repurposing chains</h3>
@@ -592,11 +590,8 @@
       <div class="fld"><label>Reference URL(s) <span style="text-transform:none;font-weight:500;color:var(--purple)">— inspiration links</span></label><input id="mRef" type="text" placeholder="https://…  (space/comma sep)"></div>
     </div>
     <div class="prodbox">
-      <div class="prodhd">🎬 Production files &mdash; recording in, edited versions out</div>
-      <div class="fld"><label>Recording (Chris) <span style="text-transform:none;font-weight:500;color:var(--purple)">— the one raw take for this script (Chris → Leo)</span></label><input id="mSource" type="text" placeholder="https://drive.google.com/file/…"><div id="mSourceFiles" class="msrc-files"></div></div>
-      <div class="fld"><label>Edited versions (variants) <span style="text-transform:none;font-weight:500;color:var(--purple)">— one row per cut: label, its own type, status, file link. Completed / posted count toward that type's goal.</span></label>
-        <div id="mVariants" class="veditor"></div>
-        <button type="button" class="btn-ghost vadd" onclick="addVariant()">+ Add variant</button></div>
+      <div class="prodhd">🎬 Recording &mdash; raw take(s) for the editor</div>
+      <div class="fld"><label>Recording (Chris) <span style="text-transform:none;font-weight:500;color:var(--purple)">— the raw take(s) for this script (Chris → Leo). Finished ads live in the Ad Library.</span></label><input id="mSource" type="text" placeholder="https://drive.google.com/file/…"><div id="mSourceFiles" class="msrc-files"></div></div>
     </div>
     <div class="fld"><label>Repurposing chain <span style="text-transform:none;font-weight:500;color:var(--purple)">— auto-spawns derivatives when this hits the trigger stage</span></label><select id="mChain"><option value="">None</option></select></div>
     <div id="mDerivatives"></div>
@@ -677,9 +672,7 @@ const FLOWS={
     {id:'planned',name:'Planned',owner:'Chris / Sarah'},
     {id:'shared',name:'Recorded & shared with editor',owner:'Chris → Leo'},
     {id:'edit',name:'In edit',owner:'Leo'},
-    {id:'scheduled',name:'Ready for review',owner:'Chris / Sarah'},
-    {id:'live',name:'Live',owner:'Leo'},
-    {id:'reviewed',name:'Reviewed',owner:'Team'}]},
+    {id:'delivered',name:'Delivered',owner:'Leo → Ad Library'}]},
   written:{label:'Written',types:['linkedin_post','newsletter_issue','partner_asset'],stages:[
     {id:'planned',name:'Planned',owner:'—'},
     {id:'drafted',name:'Drafted',owner:'Writer'},
@@ -932,13 +925,8 @@ async function onDragUp(e){
         const url=prompt('Paste the raw recording file link for Leo — the take you just filmed for this concept.\n(Optional — leave blank to move without it, but Leo needs this to start.)','');
         if(url&&url.trim()){patch.sourceUrl=url.trim();card.sourceUrl=url.trim();}
       }
-      // Moving a video into "Ready for review": offer to add a first edited variant. Optional — blank skips, never blocks the move.
-      if(stage==='scheduled'&&(TYPE_FLOW[card.contentType]||'video')==='video'&&!((card.variants||[]).some(v=>/^https?:\/\//i.test(v&&v.url||'')))){
-        const url=prompt('Paste the finished edit link for the first variant (Chris + Sarah review it).\n(Optional — leave blank to move without one.)','');
-        if(url&&url.trim()){const nv=[...(card.variants||[]),{id:'v'+Date.now()+Math.floor(Math.random()*1000),label:'Edit 1',type:card.contentType,status:'completed',url:url.trim(),completedAt:new Date().toISOString()}];patch.variants=nv;card.variants=nv;}
-      }
       Object.assign(card,patch);
-      if((stage==='live'||stage==='reviewed')&&!card.liveDate)card.liveDate=todayISO();
+      if((stage==='live'||stage==='reviewed'||stage==='delivered')&&!card.liveDate)card.liveDate=todayISO();
       renderBoard();updateSprint();
       try{const updated=await api('PUT','/api/cards/'+card.id,patch);Object.assign(card,updated);}catch(_){}
       renderBoard();
@@ -963,12 +951,7 @@ function cardEl(c){
   const childLine=c.parentId?`<div class="child-of" title="Derivative">🔗 from ${esc(parent?parent.name:'(deleted)')}</div>`:'';
   const magnetLine=c.contentType==='lead_magnet'?`<div class="magnet-line">${c.magnetFormat?`<span class="mfmt">${esc(c.magnetFormat)}</span>`:''}${c.targetIcp?` ${esc(c.targetIcp)}`:''}${c.optinCount!=null?` · <b>${c.optinCount}</b> opt-ins`:''}</div>`:'';
   const refs=refLinks(c);
-  const reviewLine=(()=>{const vs=(c.variants||[]).filter(Boolean);if(!vs.length)return '';
-    const rows=vs.slice(0,8).map(v=>{const ic=VSTATUS_ICON[v.status]||'◻';const badge=CTYPE_BADGE[v.type]||v.type||'';
-      const link=/^https?:\/\//i.test(v.url||'')?`<a class="review-file" href="${esc(v.url)}" target="_blank" rel="noopener" title="Open edited version" onpointerdown="event.stopPropagation()">🎬</a>`:'';
-      return `<div class="vitem s-${v.status}"><span class="vic">${ic}</span><span class="ctype ct-${v.type}">${esc(badge)}</span><span class="vlbl">${esc(v.label||'(untitled)')}</span>${link}</div>`;}).join('');
-    const done=vs.filter(vDone).length;
-    return `<div class="variants-box"><div class="var-head">${done}/${vs.length} done</div>${rows}</div>`;})();
+  const reviewLine='';  // finished edits now live in the Ad Library, not on planning cards
   const sourceLinks=(()=>{const toks=(c.sourceUrl||'').split(/[\s,]+/).filter(u=>/^https?:\/\//i.test(u));if(!toks.length)return '';
     const names=[];let folder=null;const plain=[];
     toks.forEach(u=>{const m=u.match(/^(https?:\/\/[^?#]*\/scl\/fo\/[^/]+\/[^/?#]+)([^?#]*)(\?[^#]*)?(?:#(.*))?$/i);if(m){const rl=(m[3]||'').match(/rlkey=[^&]+/);const fld=m[1]+(rl?'?'+rl[0]:'');let name=m[4]?decodeURIComponent(m[4]):'';if(!name&&m[2]){const seg=m[2].split('/').filter(Boolean);name=decodeURIComponent(seg[seg.length-1]||'');}names.push(name||'clip');if(!folder)folder=fld;}else plain.push(u);});
@@ -1127,7 +1110,7 @@ function openEdit(id){
   document.getElementById('mName').value=c.name||'';document.getElementById('mHook').value=c.hook||'';
   document.getElementById('mTrack').value=c.track;document.getElementById('mStage').innerHTML=stageOptions(c.stage,c.contentType);
   document.getElementById('mCtype').value=c.contentType||'video_organic';document.getElementById('mFunnel').value=c.funnelStage||'';document.getElementById('mRef').value=c.referenceUrl||'';
-  renderVariants(c.variants||[]);document.getElementById('mSource').value=c.sourceUrl||'';renderSourceFiles(c.sourceUrl||'');
+  document.getElementById('mSource').value=c.sourceUrl||'';renderSourceFiles(c.sourceUrl||'');
   populateChain(c.chainTemplateId||'');renderDerivatives(c.id);
   document.getElementById('mMagnetFormat').value=c.magnetFormat||'';document.getElementById('mTargetIcp').value=c.targetIcp||'';document.getElementById('mOptin').value=(c.optinCount!=null?c.optinCount:'');toggleMagnetFields();
   document.getElementById('mOwner').value=c.owner;document.getElementById('mBatch').value=c.batch||'';
@@ -1145,7 +1128,7 @@ function openNew(){
   document.getElementById('mName').value='';document.getElementById('mHook').value='';
   document.getElementById('mTrack').value='gtm';document.getElementById('mStage').innerHTML=stageOptions('planned','video_organic');
   document.getElementById('mCtype').value='video_organic';document.getElementById('mFunnel').value='';document.getElementById('mRef').value='';
-  renderVariants([]);document.getElementById('mSource').value='';
+  document.getElementById('mSource').value='';
   populateChain('');renderDerivatives(null);
   document.getElementById('mMagnetFormat').value='';document.getElementById('mTargetIcp').value='';document.getElementById('mOptin').value='';toggleMagnetFields();
   document.getElementById('mOwner').value='chris';document.getElementById('mBatch').value='Sprint 1';
@@ -1165,7 +1148,6 @@ async function saveCard(){
     funnelStage:document.getElementById('mFunnel').value||null,
     referenceUrl:document.getElementById('mRef').value.trim(),
     chainTemplateId:document.getElementById('mChain').value?Number(document.getElementById('mChain').value):null,
-    variants:readVariants(),
     sourceUrl:document.getElementById('mSource').value.trim(),
     magnetFormat:document.getElementById('mMagnetFormat').value||null,
     targetIcp:document.getElementById('mTargetIcp').value.trim()||null,
@@ -1227,14 +1209,8 @@ function coverageRows(){
     const winDays=rule.period==='quarter'?90:30;
     const winMs=winDays*86400000;
     const mine=cards.filter(x=>x.contentType===c.v&&!x.backlogged);
-    // Count each COMPLETED/POSTED variant of this type (windowed by completion). Legacy cards with no
-    // variants still count once under their own type when live.
-    let liveIn=0;
-    live.forEach(x=>{
-      const vs=Array.isArray(x.variants)?x.variants:[];
-      liveIn+=vs.filter(v=>v&&v.type===c.v&&(v.status==='completed'||v.status==='posted')&&v.completedAt&&(now-new Date(v.completedAt).getTime())<=winMs).length;
-      if(!vs.length&&x.contentType===c.v&&x.liveDate&&(now-new Date(x.liveDate).getTime())<=winMs)liveIn++;
-    });
+    // Count cards of this type that reached a produced/done state (live_date stamped) within the window.
+    const liveIn=mine.filter(x=>x.liveDate&&(now-new Date(x.liveDate).getTime())<=winMs).length;
     const lastLive=mine.filter(x=>x.liveDate).map(x=>new Date(x.liveDate).getTime()).sort((a,b)=>b-a)[0]||null;
     const periodDays=PERIOD_DAYS[rule.period]||14;
     const target=rule.target_count||0, owner=rule.default_owner||'', asNeeded=target<=0;

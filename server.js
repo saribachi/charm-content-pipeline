@@ -396,8 +396,8 @@ app.put('/api/cards/:id', async (req, res) => {
     }
     if (b.performance) { sets.push(`performance = $${i++}`); vals.push(JSON.stringify(b.performance)); }
     if (Array.isArray(b.variants)) { sets.push(`variants = $${i++}`); vals.push(JSON.stringify(b.variants)); }
-    // Auto-stamp live_date the first time a card lands on Live and has no date yet.
-    if (b.stage === 'live' || b.stage === 'reviewed') {
+    // Auto-stamp live_date the first time a card is produced/done (Live, Reviewed, or Delivered to editor).
+    if (b.stage === 'live' || b.stage === 'reviewed' || b.stage === 'delivered') {
       sets.push(`live_date = COALESCE(live_date, CURRENT_DATE)`);
     }
     // Start the In-Edit SLA countdown each time a card freshly enters the edit stage (re-arm the reminder).
