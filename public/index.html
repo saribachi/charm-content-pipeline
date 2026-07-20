@@ -166,6 +166,27 @@
   .msrc-file{font-size:11px;color:#475569;background:#f1f5f9;border-radius:5px;padding:2px 7px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
   .msrc-folder{font-size:11px;font-weight:700;color:#0369a1;text-decoration:none}
   .ing-folder-link{display:inline-block;font-size:12px;font-weight:700;color:#0369a1;text-decoration:none;margin-bottom:6px}
+  .ads-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:12px}
+  .ads-title{font-size:20px;font-weight:800;color:var(--ink)}
+  .ads-sub{font-size:12px;color:var(--muted);max-width:660px;margin-top:4px}
+  .ads-sub code{background:#f1f5f9;padding:1px 5px;border-radius:4px;font-size:11px}
+  .ads-metabar{display:flex;gap:14px;align-items:center;margin-bottom:10px;font-size:12px}
+  .ads-stat{color:var(--muted)} .ads-stat b{color:var(--ink)}
+  .ads-conn{color:#9a3412;background:#fff7ed;border:1px solid #fed7aa;border-radius:99px;padding:2px 10px;margin-left:auto}
+  .ads-wrap{overflow:auto;border:1px solid var(--line);border-radius:10px}
+  .ads-table{width:100%;border-collapse:collapse;font-size:13px}
+  .ads-table th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:var(--muted);padding:8px 10px;border-bottom:1px solid var(--line);background:#fafafc;position:sticky;top:0}
+  .ads-table td{padding:6px 10px;border-bottom:1px solid #f1f2f5;vertical-align:middle}
+  .ad-name{width:230px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;border:1px solid transparent;border-radius:6px;padding:5px 7px;background:transparent}
+  .ad-name:hover,.ad-name:focus{border-color:var(--line);background:#fff}
+  .ad-concept{width:150px;border:1px solid transparent;border-radius:6px;padding:5px 7px;background:transparent;font-family:inherit;font-size:12px}
+  .ad-concept:hover,.ad-concept:focus{border-color:var(--line);background:#fff}
+  .ad-track,.ad-status{border:1px solid var(--line);border-radius:6px;padding:4px 6px;font-family:inherit;font-size:12px;background:#fff}
+  .ad-status.s-live{color:var(--ok);font-weight:700} .ad-status.s-paused{color:#9a3412} .ad-status.s-archived{color:var(--muted)}
+  .ad-num{text-align:right;font-variant-numeric:tabular-nums;color:var(--ink)}
+  .ad-file{font-size:12px;font-weight:700;color:#0369a1;text-decoration:none} .ad-url{width:110px;border:1px solid var(--line);border-radius:6px;padding:4px 6px;font-size:12px}
+  .ad-del{border:none;background:#f3f4f6;color:#991b1b;border-radius:6px;cursor:pointer;font-size:15px;line-height:1;padding:3px 8px}
+  .ads-empty{text-align:center;color:var(--muted);padding:24px;font-size:13px}
   .prodbox{border:1.5px solid var(--purple);background:#faf6ff;border-radius:10px;padding:12px 14px;margin:4px 0 14px}
   .prodbox .fld{margin-bottom:10px}
   .prodbox .fld:last-child{margin-bottom:0}
@@ -362,6 +383,7 @@
     <div class="tab" data-tab="bank" onclick="switchTab('bank')">Leo's idea bank</div>
     <div class="tab" data-tab="links" onclick="switchTab('links')">Links &amp; docs</div>
     <div class="tab" data-tab="ref" onclick="switchTab('ref')">Cadence &amp; rules</div>
+    <div class="tab" data-tab="ads" onclick="switchTab('ads')">Ad Library</div>
     <button class="ingest-btn" onclick="openIngest()">📥 Ingest session</button>
   </div>
 
@@ -534,6 +556,19 @@
         </ul>
       </div>
     </div>
+  </section>
+
+  <!-- AD LIBRARY (execution pipeline) -->
+  <section id="tab-ads" class="hide">
+    <div class="ads-head">
+      <div>
+        <h2 class="ads-title">Ad Library</h2>
+        <div class="ads-sub">Every finished ad as its own asset. Naming convention: <code>TRACK_Concept_Hook_YYYYMMDD</code> — the same name goes on the file, the Meta ad, and this card, so performance links by name.</div>
+      </div>
+      <button class="btn" onclick="addAd()">+ Add ad</button>
+    </div>
+    <div class="ads-metabar" id="adsMetaBar"></div>
+    <div class="ads-wrap"><table class="ads-table" id="adsTable"></table></div>
   </section>
 
   <footer>Charm Content Pipeline &middot; shared live via the team URL &middot; built from charm-content-pipeline-master.md</footer>
@@ -763,9 +798,34 @@ async function loadState(){
 /* ---- tabs / filters ---- */
 function switchTab(t){
   document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===t));
-  ['coverage','board','weeks','bank','links','ref'].forEach(id=>document.getElementById('tab-'+id).classList.toggle('hide',id!==t));
+  ['coverage','board','weeks','bank','links','ref','ads'].forEach(id=>document.getElementById('tab-'+id).classList.toggle('hide',id!==t));
   if(t==='weeks')renderWeeks();
   if(t==='coverage')renderCoverage();
+  if(t==='ads')loadAds();
+}
+/* ---- Ad Library (execution pipeline) ---- */
+let ads=[];
+const AD_STATUS=[['ready','Ready'],['scheduled','Scheduled'],['live','Live'],['paused','Paused'],['archived','Archived']];
+async function loadAds(){try{ads=await api('GET','/api/ads');}catch(e){ads=[];}renderAds();}
+async function addAd(){try{const a=await api('POST','/api/ads',{name:'GTM_Concept_HookA_'+todayISO().replace(/-/g,''),track:'gtm',status:'ready'});ads.push(a);renderAds();}catch(e){}}
+async function saveAd(id,field,val){const a=ads.find(x=>x.id===id);if(a)a[field]=val;try{await api('PUT','/api/ads/'+id,{[field]:val});}catch(e){}if(field==='status'||field==='track'||field==='fileUrl')renderAds();}
+async function delAd(id){if(!confirm('Remove this ad from the library?'))return;try{await api('DELETE','/api/ads/'+id);}catch(e){}ads=ads.filter(x=>x.id!==id);renderAds();}
+function renderAds(){
+  const t=document.getElementById('adsTable');if(!t)return;
+  const trackOpts=(cur)=>Object.entries(TRACK_LBL).map(([k,l])=>`<option value="${k}" ${k===cur?'selected':''}>${l}</option>`).join('');
+  const statusOpts=(cur)=>AD_STATUS.map(([v,l])=>`<option value="${v}" ${v===cur?'selected':''}>${l}</option>`).join('');
+  const num=(p,k,pre,suf)=>{const v=p&&p[k];return (v!=null&&v!=='')?`${pre||''}${v}${suf||''}`:'—';};
+  t.innerHTML=`<thead><tr><th>Name</th><th>Track</th><th>From concept</th><th>Status</th><th>Spend</th><th>CTR</th><th>CPL</th><th>Hook</th><th>File</th><th></th></tr></thead><tbody>`+
+    (ads.length?ads.map(a=>{const p=a.performance||{};return `<tr class="ad-row">
+      <td><input class="ad-name" value="${esc(a.name)}" onchange="saveAd('${a.id}','name',this.value)"></td>
+      <td><select class="ad-track" onchange="saveAd('${a.id}','track',this.value)">${trackOpts(a.track)}</select></td>
+      <td><input class="ad-concept" value="${esc(a.concept||'')}" placeholder="concept…" onchange="saveAd('${a.id}','concept',this.value)"></td>
+      <td><select class="ad-status s-${a.status}" onchange="saveAd('${a.id}','status',this.value)">${statusOpts(a.status)}</select></td>
+      <td class="ad-num">${num(p,'spend','$')}</td><td class="ad-num">${num(p,'ctr','','%')}</td><td class="ad-num">${num(p,'cpl','$')}</td><td class="ad-num">${num(p,'hook','','%')}</td>
+      <td>${a.fileUrl?`<a href="${esc(a.fileUrl)}" target="_blank" rel="noopener" class="ad-file">open ↗</a>`:`<input class="ad-url" placeholder="file link" onchange="saveAd('${a.id}','fileUrl',this.value)">`}</td>
+      <td><button class="ad-del" onclick="delAd('${a.id}')" title="Remove">×</button></td></tr>`;}).join(''):`<tr><td colspan="10" class="ads-empty">No finished ads yet. Drop a finished-ads folder link in chat and I'll add them, or click <b>+ Add ad</b>.</td></tr>`)+`</tbody>`;
+  const live=ads.filter(a=>a.status==='live').length;
+  document.getElementById('adsMetaBar').innerHTML=`<span class="ads-stat"><b>${ads.length}</b> ads</span><span class="ads-stat"><b>${live}</b> live</span><span class="ads-conn">Meta: not connected — performance fills once linked</span>`;
 }
 function toggleF(el){
   const f=el.dataset.f,v=el.dataset.v;el.classList.toggle('on');

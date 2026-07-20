@@ -251,6 +251,45 @@ app.post('/api/ingest/confirm', async (req, res) => {
   try { res.json(await confirmIngest(req.body.items || [])); } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// ---------- Ad Library (finished ad assets — execution pipeline) ----------
+const rowToAd = (r) => ({
+  id: r.id, name: r.name, track: r.track, concept: r.concept || '', fileUrl: r.file_url || '',
+  status: r.status, metaAdId: r.meta_ad_id || '', performance: (r.performance && typeof r.performance === 'object') ? r.performance : {},
+  createdAt: r.created_at, updatedAt: r.updated_at,
+});
+const AD_FIELDS = { name: 'name', track: 'track', concept: 'concept', fileUrl: 'file_url', status: 'status', metaAdId: 'meta_ad_id' };
+app.get('/api/ads', async (_req, res) => {
+  try { const r = await pool.query('SELECT * FROM ad_assets ORDER BY position, created_at'); res.json(r.rows.map(rowToAd)); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+app.post('/api/ads', async (req, res) => {
+  try {
+    const b = req.body || {};
+    const id = 'a' + Date.now() + Math.floor(Math.random() * 1000);
+    const r = await pool.query(
+      `INSERT INTO ad_assets (id, name, track, concept, file_url, status, position)
+       VALUES ($1,$2,$3,$4,$5,$6,(SELECT COALESCE(MAX(position),0)+1 FROM ad_assets)) RETURNING *`,
+      [id, b.name || 'Untitled ad', b.track || 'gtm', b.concept || '', b.fileUrl || '', b.status || 'ready']);
+    res.json(rowToAd(r.rows[0]));
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+app.put('/api/ads/:id', async (req, res) => {
+  try {
+    const b = req.body || {}; const sets = [], vals = []; let i = 1;
+    for (const [k, col] of Object.entries(AD_FIELDS)) if (k in b) { sets.push(`${col} = $${i++}`); vals.push(b[k]); }
+    if (b.performance) { sets.push(`performance = $${i++}`); vals.push(JSON.stringify(b.performance)); }
+    if (!sets.length) return res.json({ ok: true });
+    sets.push('updated_at = now()'); vals.push(req.params.id);
+    const r = await pool.query(`UPDATE ad_assets SET ${sets.join(', ')} WHERE id = $${i} RETURNING *`, vals);
+    if (!r.rowCount) return res.status(404).json({ error: 'not found' });
+    res.json(rowToAd(r.rows[0]));
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+app.delete('/api/ads/:id', async (req, res) => {
+  try { await pool.query('DELETE FROM ad_assets WHERE id = $1', [req.params.id]); res.json({ ok: true }); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 app.get('/api/state', async (_req, res) => {
   try {
     const cards = await pool.query('SELECT * FROM cards ORDER BY position, created_at');

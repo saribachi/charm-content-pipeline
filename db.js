@@ -174,6 +174,20 @@ export async function initDb() {
     );
     ALTER TABLE ingest_items ADD COLUMN IF NOT EXISTS shared_url TEXT DEFAULT '';
     ALTER TABLE ingest_items ADD COLUMN IF NOT EXISTS file_path  TEXT DEFAULT '';
+    -- Ad Library: each finished ad file is its own asset (separate from planning concepts). Meta perf keys off name.
+    CREATE TABLE IF NOT EXISTS ad_assets (
+      id           TEXT PRIMARY KEY,
+      name         TEXT NOT NULL,
+      track        TEXT DEFAULT 'gtm',
+      concept      TEXT DEFAULT '',
+      file_url     TEXT DEFAULT '',
+      status       TEXT DEFAULT 'ready',
+      meta_ad_id   TEXT DEFAULT '',
+      performance  JSONB DEFAULT '{}'::jsonb,
+      position     INTEGER DEFAULT 0,
+      created_at   TIMESTAMPTZ DEFAULT now(),
+      updated_at   TIMESTAMPTZ DEFAULT now()
+    );
   `);
 
   // Migration: add script column to pre-existing deployments.
