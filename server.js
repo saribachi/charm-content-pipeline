@@ -79,6 +79,9 @@ app.post('/login', (req, res) => {
 });
 app.get('/logout', (req, res) => { setSession(req, res, '', 0); res.redirect('/login'); });
 
+// Public, no-login share page for the editor (footage priorities + scripts).
+app.get('/edit-priorities', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'edit-priorities.html')));
+
 // gate everything else
 app.use((req, res, next) => {
   if (!PASSWORD) return next();
