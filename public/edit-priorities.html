@@ -1,124 +1,471 @@
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Charm — Edit Priorities & Scripts</title>
+<title>Charm — Edit Priorities &amp; Scripts</title>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<style>
-:root{--ink:#1a1525;--muted:#6b6577;--line:#e7e4ee;--gtm:#8733ed;--cs:#e0218a;--flex:#dc2626;--vsl:#0d9488;--consult:#2563eb;--bg:#faf9fc}
-*{margin:0;box-sizing:border-box;font-family:'Poppins',system-ui,sans-serif}
-body{background:var(--bg);color:var(--ink);line-height:1.5;padding:32px 20px 80px}
+<style>*{margin:0;box-sizing:border-box;font-family:'Poppins',system-ui,sans-serif}
+:root{--ink:#1a1525;--muted:#6b6577;--line:#e7e4ee;--gtm:#8733ed;--bg:#faf9fc}
+body{background:var(--bg);color:var(--ink);line-height:1.5;padding:32px 20px 90px}
 .wrap{max-width:900px;margin:0 auto}
 h1{font-size:28px;font-weight:800;letter-spacing:-.5px}h1 span{color:var(--gtm)}
 .sub{color:var(--muted);font-size:14px;margin:6px 0 18px}
-.folders{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:26px}
+.folders{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px}
 .folder{background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 14px;font-size:12.5px;text-decoration:none;color:var(--ink);font-weight:600}
 .folder b{color:var(--gtm)} .folder span{color:var(--muted);font-weight:500;display:block;font-size:11px}
+.legend{font-size:12px;color:var(--muted);margin:0 0 22px}
 .item{background:#fff;border:1px solid var(--line);border-radius:14px;padding:20px 22px;margin-bottom:16px;border-left:5px solid var(--line)}
-.item.p1{border-left-color:var(--flex)} .item.p2{border-left-color:var(--gtm)} .item.p3{border-left-color:var(--vsl)} .item.p4{border-left-color:var(--consult)} .item.p5{border-left-color:#c9a227}
 .ihead{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:4px}
 .badge{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;padding:3px 9px;border-radius:99px;color:#fff}
-.b-p1{background:var(--flex)} .b-p2{background:var(--gtm)} .b-p3{background:var(--vsl)} .b-p4{background:var(--consult)} .b-p5{background:#c9a227}
 .icat{font-size:19px;font-weight:800}
 .iwhat{color:var(--muted);font-size:13px;margin-bottom:12px}
-.files{margin:10px 0 14px}
-.file{display:flex;gap:8px;align-items:baseline;font-size:12.5px;padding:4px 0;border-bottom:1px dashed var(--line)}
-.file:last-child{border-bottom:none}
-.fname{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-weight:600;font-size:12px;color:var(--gtm);min-width:230px}
+.iwhat a,.folder a,.deliv a{color:var(--gtm)}
+.files{margin:8px 0 6px}
+.file,.ad-top{display:flex;gap:8px;align-items:baseline;font-size:12.5px;padding:4px 0}
+.file{border-bottom:1px dashed var(--line)} .file:last-child{border-bottom:none}
+.fname{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-weight:600;font-size:12px;color:var(--gtm);min-width:225px}
 .fnote{color:var(--muted)}
-.best{background:#e7f7ee;color:#127a3e;font-size:10px;font-weight:700;padding:1px 6px;border-radius:5px;margin-left:6px}
-.script{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:14px 16px;font-size:13.5px;color:#2a2536;white-space:pre-line}
-.script-h{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:6px}
-.flag{background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;border-radius:10px;padding:12px 16px;font-size:13px;margin-bottom:16px}
-.excl{background:#f4f2f8;border-radius:12px;padding:16px 20px;font-size:13px;color:var(--muted);margin-top:8px}
-.excl b{color:var(--ink)}
-.excl code{font-family:ui-monospace,monospace;font-size:11.5px;background:#fff;padding:1px 5px;border-radius:4px}
-.legend{font-size:12px;color:var(--muted);margin:0 0 22px}
-</style></head>
+.best{background:#e7f7ee;color:#127a3e;font-size:10px;font-weight:700;padding:1px 6px;border-radius:5px}
+.ad{border-top:1px solid var(--line);padding:10px 0} .ad:first-of-type{border-top:none} .ad-name{font-weight:600}
+.scr{margin:8px 0 2px} .scr summary{cursor:pointer;font-size:12px;font-weight:700;color:var(--gtm);padding:4px 0}
+.scr-body{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:14px 16px;font-size:13px;color:#2a2536;white-space:pre-line;margin-top:6px;max-height:420px;overflow:auto}
+.deliv{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:14px 16px;font-size:13px}
+.deliv-h{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:6px}
+.deliv ul,.specs ul{margin:8px 0 0 18px} .deliv li,.specs li{margin:3px 0}
+.specs{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px 22px;margin:8px 0 16px}
+.specs-h{font-weight:800;font-size:15px;margin-bottom:4px}
+.excl{background:#f4f2f8;border-radius:12px;padding:16px 20px;font-size:13px;color:var(--muted)}
+.excl b{color:var(--ink)} .excl code{font-family:ui-monospace,monospace;font-size:11.5px;background:#fff;padding:1px 5px;border-radius:4px}</style></head>
 <body><div class="wrap">
-<h1>Charm — <span>Edit Priorities & Scripts</span></h1>
-<div class="sub">Everything to cut, in priority order, with the exact source files and the script for each. Two-camera shoots — cut from A-cam primary, B-cam for coverage.</div>
-
+<h1>Charm — <span>Edit Priorities &amp; Scripts</span></h1>
+<div class="sub">Everything to cut, in priority order, with the exact source files and the <b>full script</b> for each (click to expand). Two-camera shoots — cut from A-cam primary, B-cam for coverage.</div>
 <div class="folders">
-  <a class="folder" href="https://www.dropbox.com/scl/fo/tydw3clov9ywrunxvfr14/AJNd17iKyNukS-wm0o0oyqw/07.01.26?rlkey=ku9m5uwm9rhwlg8173s4ttp9k&dl=0" target="_blank"><b>📁 Folder A</b><span>CS-Flex VSL · GTM VSL · GTM ads (files A023_…)</span></a>
-  <a class="folder" href="https://www.dropbox.com/scl/fo/cie05todb9cup342bndwz/AGTFYpPXQ1ono4rhffpBMUw?rlkey=702xu0dvgvak2b4y9w8l6q7wp&dl=0" target="_blank"><b>📁 Folder B</b><span>Consulting · CS-Engine VSL · GTM ad (files A034_… / B021_…)</span></a>
+  <a class="folder" href="https://www.dropbox.com/scl/fo/tydw3clov9ywrunxvfr14/AJNd17iKyNukS-wm0o0oyqw/07.01.26?rlkey=ku9m5uwm9rhwlg8173s4ttp9k&dl=0" target="_blank"><b>📁 Folder A</b><span>CS-Flex VSL · GTM VSL · GTM ads (A023_…)</span></a>
+  <a class="folder" href="https://www.dropbox.com/scl/fo/cie05todb9cup342bndwz/AGTFYpPXQ1ono4rhffpBMUw?rlkey=702xu0dvgvak2b4y9w8l6q7wp&dl=0" target="_blank"><b>📁 Folder B</b><span>Consulting · CS-Engine VSL · GTM ad (A034_… / B021_…)</span></a>
 </div>
-<div class="legend">Priority: 🔴 CS-Flex → 🔴 CS-Engine (both VSLs, do first) → 🟣 GTM VSL → 🟢 Consulting → 🟡 GTM ads.</div>
+<div class="legend">Priority: 🔴 CS-Flex → 🔴 CS-Engine (both VSLs, do first) → 🟣 GTM VSL → 🟢 Consulting → 🟡 GTM ads → 🎬 reels from the GTM VSL.</div>
+<div class="item" style="border-left-color:#dc2626">
+  <div class="ihead"><span class="badge" style="background:#dc2626">🔴 Priority 1 — do first</span><span class="icat">CS-Flex VSL</span></div>
+  <div class="iwhat">Flex CS for drops / launches / seasonal spikes, pay-per-resolution. Several clean takes captured.</div>
+  <div class="files"><div class="file"><span class="fname">A023_06290032_C003.mov</span><span class="fnote">full take + client logos &nbsp;<span class="best">BEST</span></span></div><div class="file"><span class="fname">A023_06290028_C001.mov</span><span class="fnote">clean full take (no logos)</span></div><div class="file"><span class="fname">A023_06290052_C004.mov</span><span class="fnote">extended proof / logo section</span></div><div class="file"><span class="fname">A023_06290029_C002.mov</span><span class="fnote">alt take (flub at open — pickups only)</span></div></div><details class="scr"><summary>▸ Full CS-Flex VSL script</summary><div class="scr-body">Part 1: The Hook (0:00 – 2:30)
+If you&#x27;ve got a drop coming, a launch on the calendar, or a seasonal spike about to hit — I will give you a fully trained, on-brand customer service team that handles every ticket across email, chat, and social, and you only pay when they actually solve one.
+Real human agents. Live in 48 hours. Sounds like your brand on day one.
+Just like we&#x27;ve done for Friday Beers, Channel 5 News with Andrew Callaghan, Pizzafy by Airrack, Peter Diamandis at XPRIZE, and Woo More Play — handling drops, launches, and seasonal surges from a trickle to thousands of tickets overnight.
+This way you can stop choosing between &quot;staff up and bleed cash in your slow months&quot; or &quot;stay lean and watch your CS implode every time something pops&quot; — because we ramp when you ramp, and back off when you don&#x27;t, and only charge you for tickets we actually solve.
+And if you&#x27;ve tried it all before — maybe you&#x27;ve worked with a BPO that locked you into a 12-month contract and charged you for seats sitting empty… or hired VAs whose replies read like a phishing scam… or threw AI at it and watched it loop your best customer into a refund rage…
+This is completely different. Most CS providers charge you for availability — for seats, hours, retainers, minimums. We charge you for outcomes. A flat fee to keep your pod trained and on standby, and a per-ticket fee only when work actually happens. When your business is quiet, your bill is quiet.
+That&#x27;s the whole model.
+If that sounds like what you&#x27;ve been looking for, there&#x27;s a button below this video to book a free CS audit. We&#x27;ll look at your volume, your channels, your current setup, and I&#x27;ll walk you through exactly what this would look like — and exactly what it would cost — for your business.
+If you need more context, stick around. I&#x27;ll tell you who I am, how this works, and who we&#x27;ve already done it for.
 
-<!-- P1 CS FLEX -->
-<div class="item p1">
-  <div class="ihead"><span class="badge b-p1">🔴 Priority 1 — do first</span><span class="icat">CS-Flex VSL</span></div>
-  <div class="iwhat">The customer-service VSL — flex CS for drops/launches/spikes, pay-per-resolution. Fully captured, several clean takes.</div>
-  <div class="files">
-    <div class="file"><span class="fname">A023_06290032_C003.mov</span><span class="fnote">full take + client logos<span class="best">BEST</span></span></div>
-    <div class="file"><span class="fname">A023_06290028_C001.mov</span><span class="fnote">clean full take (no logos)</span></div>
-    <div class="file"><span class="fname">A023_06290052_C004.mov</span><span class="fnote">extended proof / logo section (Friday Beers detail)</span></div>
-    <div class="file"><span class="fname">A023_06290029_C002.mov</span><span class="fnote">alt take (nervous flub at open — for pickups only)</span></div>
+Part 2: Early CTA / Mini Checkpoint (2:30 – 3:00)
+Now if you already know this is what you need — if you&#x27;ve got a drop in two weeks, a launch coming, or you can see your busy season already — book the call. Button&#x27;s below.
+We&#x27;ll walk through your volume, your stack, and exactly what your pricing would look like. You&#x27;ll know in 15 minutes whether this is a fit.
+If you&#x27;re still on the fence or just want to make sure this isn&#x27;t another agency BS marketing thing — totally fine. Stick around and I&#x27;ll show you why this is structurally different from anything else on the market.
+
+Part 3: Introduction (3:00 – 3:45)
+Quick step back — let me tell you who I am and why you should listen to me on this.
+My name is Chris, and I run Charm. We&#x27;ve handled customer service operations for enterprise clients like Pepsi, Roku, and Jacuzzi — and for the kind of creator-led, drop-driven, seasonal businesses where the volume curve looks more like an earthquake chart than a smooth line.
+Millions of tickets handled. Hundreds of brands. I personally architected the bench, the SOPs, and the onboarding system that lets us drop a trained team into your business in 48 hours.
+I&#x27;m not telling you this to brag. I just want to establish why I&#x27;m even qualified to talk about this — because what I&#x27;m about to show you contradicts how 95% of this industry operates, and you should know I&#x27;ve actually run the operation at scale before I argue against it.
+
+Part 4: The Core Problem (3:45 – 5:30)
+Here&#x27;s the situation you&#x27;re probably in:
+Your support volume is not linear. It spikes. It dies. It spikes again.
+You might do 80 tickets a week for a month, then 5,000 tickets in a weekend when you drop, launch, or hit your peak season. Then back down to 80.
+And right now, you&#x27;re stuck in one of two impossible spots:
+You&#x27;re understaffed for the spike — your in-house team or your VA gets buried, response times go to four days, &quot;where&#x27;s my order&quot; turns into Instagram comments, and customers who would&#x27;ve been repeat buyers go scorched-earth on you publicly. You spend launch week putting out fires instead of capitalizing on the moment.
+Or you&#x27;re overstaffed for the baseline — paying a BPO $6k–$10k/month minimum, or carrying full-time agents at $50k+ loaded each, to process 12 tickets a day during your slow months. You&#x27;re hemorrhaging cash on infrastructure you actually need 20% of the time.
+The math doesn&#x27;t work either way. Staff for the spike, you go broke. Staff for the baseline, you get cooked when the spike hits.
+And the most frustrating part isn&#x27;t the cost — it&#x27;s that this should be a solved problem. You&#x27;re not asking for anything exotic. You just want your CS to flex the way your business flexes. And nobody in this industry will sell you that, because their entire business model depends on selling you idle capacity.
+You didn&#x27;t build this business to be the head of customer service. But here you are, at 2am, clearing a Gorgias queue, knowing this isn&#x27;t what your time is worth.
+
+Part 5: The False Solution (5:30 – 7:30)
+Now if you&#x27;ve already got a CS team — in-house, BPO, VAs, whatever — this isn&#x27;t me telling you to fire them. They might be great at what they do. The problem isn&#x27;t them. It&#x27;s a math problem.
+Even the best 3-person CS team in the world can&#x27;t 10x output overnight without quality collapsing. That&#x27;s physics, not talent.
+So here&#x27;s what most people in your seat try, and why none of it fixes the spike problem:
+They hire a BPO. They get locked into a 12-month contract, charged per seat whether tickets exist or not, and the replies come back sounding like a script-reader in 2014. Brand voice dead. Slow season bill: same as peak season bill.
+They hire VAs direct. Now they&#x27;re managing them, training them, replacing them every four months, and the replies still read like translation software.
+They hire in-house. Steady-state coverage solved. Spike coverage still broken — because three agents can&#x27;t handle 5x volume no matter how good they are.
+They throw AI at it. Works for the easy 60%. The 40% that actually matters — the angry refund, the nuanced VIP, the edge case that becomes a Twitter screenshot — gets looped and torched.
+And here&#x27;s the thing nobody in this industry will tell you:
+The reason none of this works isn&#x27;t because you haven&#x27;t found the right vendor. It&#x27;s because every CS vendor in the market is selling you the wrong thing.
+They&#x27;re selling availability. Seats, hours, retainers, minimums. Their incentive is to maximize the idle capacity they charge you for. Your incentive is to only pay when work actually happens.
+Those two incentives are fundamentally opposed. Which is why every &quot;flexible&quot; CS arrangement eventually becomes inflexible — the vendor needs it to, or their business doesn&#x27;t work.
+You don&#x27;t need a better version of the wrong thing. You need a different thing entirely.
+
+Part 6: The Real Solution + Future Pacing (7:30 – 9:00)
+What you actually need is a CS partner that operates like a utility.
+Like electricity. You don&#x27;t pay your power company when you&#x27;re not using it. You don&#x27;t sign a 12-month minimum-kilowatt-hour contract. You use it, you pay for it. You don&#x27;t, you don&#x27;t.
+That means three things have to be true at the same time:
+One — the team has to already exist. Not &quot;we&#x27;ll hire when you sign.&quot; A pre-trained, vetted bench of human CS agents who can drop into your brand on 48 hours&#x27; notice, already coached on tone, response frameworks, and the most common ticket types across drops, launches, and seasonal spikes.
+Two — the pricing has to track your volume, not their seats. A flat monthly fee small enough to be a no-brainer, that keeps your pod warm, your SOPs current, your QA running. Plus a per-ticket fee — only when work actually happens. No minimums, no contracts, no paying for empty seats.
+Three — the team has to sound like you. Brand voice baked into onboarding so your replies don&#x27;t read like a call center. Real human writers, not chatbots, not script-readers.
+And when you have this:
+You launch your next drop without panic. You don&#x27;t pay for downtime. You sleep through launch week instead of clearing tickets at 2am. Your customers get responses in hours instead of days, even at peak — so CSAT goes up, refund rates go down, repeat purchase climbs. And you stop having to make the impossible choice between &quot;staff up and bleed&quot; or &quot;stay lean and burn the brand.&quot;
+You just have CS handled. On demand. Forever.
+
+Part 7: Reinstate the Big Promise (9:00 – 9:45)
+And yes — that&#x27;s exactly what we deliver inside Charm Flex.
+A fully managed, on-demand customer service team — staffed by real humans, live in your stack in 48 hours, sounding like your brand on day one — that only costs you when work actually happens.
+A flat monthly fee to keep your pod trained and ready. A per-ticket fee only when tickets are resolved. No long-term contracts. No seat minimums. No paying for empty capacity.
+You drop, launch, or hit peak season — we ramp. You go quiet — we ramp down. You don&#x27;t think about it.
+This isn&#x27;t a BPO. It&#x27;s not a freelancer marketplace. It&#x27;s not an AI tool you have to babysit.
+It&#x27;s a fully built CS function you switch on like a light.
+
+Part 8: Case Studies / Proof (9:45 – 11:30)
+[Placeholders — drop in your real specifics]
+We handled CS for Friday Beers — one of the biggest creator brands on the internet — when they ran [drop/campaign]. [X,000+] tickets in [timeframe]. Live in 48 hours. Brand voice indistinguishable from the founder.
+We ran support for Channel 5 News with Andrew Callaghan during [moment/launch] — [what we handled, what the result was].
+We handled the support spike for Pizzafy by Airrack when [launch moment] — [volume + outcome].
+We&#x27;ve been the CS team behind Peter Diamandis&#x27;s XPRIZE community — handling member support across high-touch launches without them having to hire a single full-time agent.
+And we run seasonal support for Woo More Play — ramping up for Q4 and Valentine&#x27;s, ramping down in between. They pay for the spike, not the silence.
+Plus dozens of other brands you&#x27;ve probably bought from, watched, or followed.
+All their handles are on the screen and in the case studies section below this video. Go message them. Ask how it was working with us. They don&#x27;t know I&#x27;m sending you their way — I&#x27;m just that confident in the work.
+
+Part 9: What You Get (11:30 – 12:30)
+Here&#x27;s exactly what activating Charm Flex gets you:
+A dedicated pod of pre-trained human CS agents assigned to your brand — same faces every spike, not a queue of strangers
+48-hour onboarding including brand voice training, SOP customization, and full integration into your existing helpdesk — Gorgias, Zendesk, Intercom, Front, Help Scout, whatever you use
+Email, live chat, and social DM coverage — full omnichannel, no upcharges
+Real-time scaling — go from 50 to 5,000 tickets a day with zero notice from your side
+Weekly QA reports so you can see exactly how every ticket is handled, your CSAT, your response times, and where customers are friction-ing
+A dedicated CS lead on our side managing the pod so you&#x27;re not project-managing anyone
+Per-ticket pricing across every channel, every complexity level, every volume tier. No tiered pricing games. No &quot;premium ticket&quot; surcharges.
+Pause anytime. Zero penalty. Zero notice. Your slow season is your slow season.
+That&#x27;s the offer. No upsells, no &quot;starter vs. pro,&quot; no tricks.
+
+Part 10: Address Objections (12:30 – 14:00)
+If you&#x27;ve watched this far and haven&#x27;t booked yet, it&#x27;s probably one of these:
+&quot;What does this actually cost?&quot; The model is a small flat monthly fee plus per-ticket pricing on top. We don&#x27;t anchor numbers in the VSL because the right answer depends on your volume — what looks expensive for a brand doing 200 tickets a month is a steal for a brand doing 20,000. On the audit call we&#x27;ll plug your numbers in and you&#x27;ll know in 15 minutes whether it works. If it doesn&#x27;t, no hard feelings.
+&quot;I already have a CS team — do I have to replace them?&quot; No. Most of our Flex clients use us alongside their existing setup. Your team handles the steady-state work they know best. We handle the overflow when volume spikes — drops, launches, peak season, viral moments — then disappear when it&#x27;s done. You don&#x27;t fire anyone. You just stop watching them drown.
+&quot;Wait — is this AI?&quot; No. Every ticket is handled by a human agent on our bench. We use AI internally for QA, routing, and macro suggestions — but the response your customer reads was written by a person trained on your brand voice. AI is what most cheap CS competitors are actually selling. We&#x27;re not them.
+&quot;How can you sound like my brand in 48 hours?&quot; You give us 10-15 example tickets and your tone-of-voice doc — or we build one for you on the audit call. Our agents are trained writers and CS pros, not script-readers. We have brands where customers genuinely don&#x27;t know it&#x27;s not the founder replying.
+&quot;What if my volume is really low?&quot; Fine. We have brands on Flex doing 200 tickets a month and brands doing 20,000. The model works at every scale because there&#x27;s no minimum.
+&quot;What channels do you support?&quot; Email, chat, social DMs, and helpdesk macros. We don&#x27;t do voice on Flex — most spike businesses don&#x27;t need it. If you need voice, that&#x27;s a different Charm offering, separate conversation.
+&quot;How do I know quality won&#x27;t drop during a spike?&quot; Because we&#x27;re built for spikes. Our bench is sized for surge volume, not steady-state. You&#x27;re not borrowing capacity from another brand when you ramp — we have agents whose entire job is being ready for moments like yours.
+&quot;What if I only need you once?&quot; Use us once. There&#x27;s no contract. Most brands come back, but that&#x27;s because the model works — not because we locked them in.
+
+Part 11: Final CTA (14:00 – 15:30)
+So — if you&#x27;re still running a business where every drop, launch, or seasonal spike either breaks your CS or breaks your bank…
+And you want a CS function — real humans, pricing that tracks your actual volume, no contracts, no seat minimums — that actually scales with your business instead of forcing you to scale around it…
+That&#x27;s exactly what we install with you inside Charm Flex.
+On the call, we&#x27;ll audit your current setup, map your volume patterns, walk through your channels and stack, and I&#x27;ll show you exactly what&#x27;s broken and exactly how we&#x27;d fix it — including precisely what this would cost for your business.
+If it makes sense to work together, I&#x27;ll walk you through the rollout. If not — no pressure. You&#x27;ll leave with a full audit of your CS stack and tactical advice on what we&#x27;d do if we were running your support.
+If I&#x27;m wrong, you lose 30 minutes.
+If I&#x27;m right, you&#x27;ll join brands like Friday Beers, Channel 5, Pizzafy, XPRIZE, and Woo More Play who stopped thinking about customer service and started focusing on the thing they actually built their business to do.
+Hit the button. Pick a time. Let&#x27;s talk.</div></details></div><div class="item" style="border-left-color:#e0218a">
+  <div class="ihead"><span class="badge" style="background:#e0218a">🔴 Priority 2</span><span class="icat">CS-Engine VSL</span></div>
+  <div class="iwhat">Turn customer service from a cost center into a revenue engine. Entirely separate script from CS-Flex.</div>
+  <div class="files"><div class="file"><span class="fname">A034_07101121_C004.mov</span><span class="fnote">Folder B · A-cam</span></div><div class="file"><span class="fname">B021_06231602_C005.mov</span><span class="fnote">Folder B · B-cam</span></div></div><details class="scr"><summary>▸ Full CS-Engine VSL script</summary><div class="scr-body">PART 1 — THE HOOK (0:00 – 2:30)
+Your customer service team is a cost center. Whether you sell software, physical products, or services — we turn it into an engine that costs a fraction of what you&#x27;re paying today and generates revenue.
+Not &quot;protects&quot; revenue. Generates it. Live in 30 days. Complete in 90.
+Here&#x27;s the idea underneath everything I&#x27;m about to say: every ticket in your queue right now is a customer who already gave you money, talking to you in this moment. That is the warmest traffic your company will ever get — and you&#x27;ve been staffing it like a cost problem. Everyone has. That&#x27;s the mistake.
+The engine that fixes it has three parts — the systems, the staffing, and the management. Most companies hire a body, skip the other two, and hope. We build all three. We&#x27;ve been doing it for over a decade — for Jacuzzi, New Balance, and Roku. For Klutch sports, Mike Tyson and Jamie Lee Curtis. For Crime Junkie, Channel 5, and XPRIZE. For Sutro, where we run over 100,000 tickets a year.
+And when the engine is built, here&#x27;s what changes: your cost of service drops — we cut UTV Source&#x27;s support labor cost by 25%, and hybrid builds land near a third of previous cost. Every channel gets covered — email, chat, phone, social, community. Customers get answered in hours, not days. Your service team starts producing revenue — saved sales, reorders, upgrades, reviews, renewals. And you don&#x27;t have to talk to your service team a single hour of the whole month if you don&#x27;t want to. Our clients will tell you that themselves.
+And if you&#x27;ve tried it all before — a BPO that locked you into a contract, billed you for empty seats, and killed your brand voice… in-house hiring where ramp time and attrition ate the savings… an AI tool that looped your angriest customer into a refund rage — this is completely different.
+Because we don&#x27;t sell you a body, and we don&#x27;t sell you seats. We build the machine — and we build it in your stack. Your helpdesk, your macros, your knowledge base, your training system, your documentation. There&#x27;s no black box you&#x27;re renting access to. If you ever want your own people running it, the management hands over cleanly — that&#x27;s exactly what we did for UTV Source. Most clients look at the numbers and keep us. But that&#x27;s a choice, not a trap.
+If that sounds like exactly what you&#x27;ve been missing, there&#x27;s a button below this video to book a call with my team. We&#x27;ll do the read on your volume, your channels, your stack, and your current cost — and I&#x27;ll show you exactly what we&#x27;d build in 30 days, and what the engine does to both sides of your service P&amp;L.
+If you need more info first — stick around. Let me show you who I am, why this works when everything else hasn&#x27;t, and exactly what you get.
+PART 2 — EARLY CTA (2:30 – 3:00)
+Now if that sounds like exactly what you&#x27;ve been looking for — if you already know your support operation costs too much and gives nothing back, and you want it rebuilt by people who do this every single day — there&#x27;s a button below this video. Book the call.
+We&#x27;ll walk through your volume, your channels, and your current spend, and I&#x27;ll show you exactly what we&#x27;d build — including real numbers at your scale: what it costs, what it saves, and where the revenue comes from. You&#x27;ll know in 30 minutes whether this is a fit.
+If you&#x27;re still on the fence — or you&#x27;ve been burned by enough &quot;support solutions&quot; that you assume this is another one — totally fair. Stick around. I&#x27;ll break the engine down piece by piece and show you exactly why nobody else in this industry builds it.
+PART 3 — THE INTRODUCTION (3:00 – 4:00)
+Quick step back — let me tell you who I am and why you should listen to me on this.
+My name is Chris, and I run Charm. We&#x27;ve been building and running customer service operations for over a decade — for enterprise brands like Pepsi, Jacuzzi, New Balance, and Roku… for names like Mike Tyson and Jamie Lee Curtis… and for creator and DTC brands like Crime Junkie, Channel 5, and XPRIZE. Millions of tickets. Hundreds of brands. B2C and B2B.
+I personally built the agent bench, the training systems, the QA frameworks, and the onboarding playbooks we use — the machine that lets us stand up a trained, on-brand team inside your stack in days.
+I&#x27;m not telling you this to brag. I&#x27;m telling you because in ten-plus years of running these operations, we have already failed every way customer service can fail — and engineered the fix into the system. Your company won&#x27;t be the one we learn on. That&#x27;s the entire point of hiring us.
+PART 4 — THE CORE PROBLEM (4:00 – 6:00)
+Here&#x27;s what I&#x27;m guessing is going on for you right now.
+Support is your ugliest line item. It grows every year, and somehow the queue is still never clear. Response times that used to be hours are now days. The macros were written two years and four launches ago, so every agent answers from memory — and every agent answers differently.
+Your best agent is carrying the whole team, and you&#x27;re quietly terrified of the day they quit. Your newest hire has been &quot;ramping&quot; for two months and still escalates everything. And you already know the replacement math: three months to hire, two months to train, and the queue is on fire today.
+If you&#x27;re B2C — the review scores are bending the wrong way and the &quot;where&#x27;s my order&quot; messages are showing up in public comments. If you&#x27;re B2B — every slow reply is sitting in an inbox next to a renewal decision, and your account managers are doing support instead of selling.
+Meanwhile the CFO looks at the labor line and asks the question you can&#x27;t answer: what do we get for this? And the honest answer, the one nobody says in the meeting, is: fewer angry customers. That&#x27;s it. That&#x27;s the whole return. You&#x27;re spending more every year to lose slightly less.
+So you&#x27;re stuck with the only lever anyone&#x27;s ever offered you: cheaper bodies. Squeeze the seat cost. Try another BPO. And every time you pull that lever, quality drops, customers feel it, and the real cost goes up.
+Maybe the founder is still in the inbox at 2am — the most expensive employee in the company doing tier-1 work.
+And the most frustrating part: none of this is exotic. Routing, training, QA, staffing — this should be a solved problem. You didn&#x27;t sign up to fight the same fires every week. If that&#x27;s where you&#x27;re at — I get it. We talk to operators in exactly this spot every single day.
+PART 5 — THE FALSE SOLUTION (6:00 – 8:00)
+Now here&#x27;s where almost everyone gets this completely wrong — and it&#x27;s a two-part mistake.
+The first mistake you already know: most companies think support is a people problem, so the fix is a person. Hire a body. Outsource the body. Swap the BPO for a cheaper BPO. Buy an AI and fire the body. And it never works, because a body without systems and without management isn&#x27;t support — it&#x27;s just payroll. The seat was never the cost. The broken machine is the cost. Wrong routing means every ticket gets touched twice. Stale macros mean every answer gets improvised. No QA means refunds become the apology of choice — you&#x27;re literally handing out margin to make tickets go away. You can cut the seat cost 30% and watch your actual cost per resolution go up. That&#x27;s the trap.
+But the second mistake is the one nobody in this industry will tell you about, because their entire business model depends on you never seeing it:
+You&#x27;ve been taught that customer service is defense.
+Cost center. Damage control. At best — if you&#x27;ve got a sophisticated board deck — a &quot;retention function&quot; that protects revenue. Protect. Retain. Defend. That&#x27;s the ceiling everyone accepts.
+Now think about what&#x27;s actually sitting in your queue.
+Every single ticket is a customer who already bought from you, who already trusts you enough to reach out, talking to your company right now, by their own choice. You spend a fortune on ads, cold outreach, and content to get strangers to talk to you — and meanwhile the warmest conversations your business will ever have are sitting in a queue being handled as cheaply as possible by someone whose only job is to make the conversation end.
+The person asking about sizing is about to buy or about to bounce. The person with a broken part buys the upgrade when the fix comes with the right recommendation. The B2B account with a grumpy admin ticket is six weeks from a renewal call. The happy customer you just saved is one sentence away from leaving the review that sells the next hundred customers.
+Handled by a cost center, every one of those moments dies. Handled by an engine, every one of them is revenue.
+So no — the answer was never a cheaper body on a broken machine. And it was never &quot;better defense&quot; either. The answer is an operation built to do both things at once: run the queue for less, and mine it for the revenue that&#x27;s already sitting there.
+That&#x27;s the part the BPO will never build — they bill for seats, not outcomes. That&#x27;s the part the AI tool can&#x27;t do. And that&#x27;s the part that changes what customer service is on your P&amp;L.
+PART 6 — THE REAL SOLUTION + FUTURE PACE (8:00 – 10:00)
+What you actually need is the whole engine — all three parts, built as one machine, pointed at both sides of the ledger. Here&#x27;s what that looks like:
+1. The systems. We build your entire service infrastructure. Your helpdesk — Zendesk, Freshdesk, Gorgias, whatever fits — rebuilt with routing, tagging, and escalation paths that send every ticket to the right place the first time. A macro library in your brand voice — including the save-the-sale, upgrade, and review-capture plays, not just apologies. Your knowledge base. Frontline chatbots and AI deflection for the repetitive work — scoped with you, so AI never touches a conversation you want a human on. A full LMS so training is a course, not tribal knowledge. Reporting dashboards you don&#x27;t have to build. And the part nobody else does: outbound service — preemptive troubleshooting, so when something starts to flag we reach out before the customer notices, and win-back and reorder touches that turn the customer file into repeat revenue. Anywhere a customer wants to talk to you, type to you, or email you — we build that channel.
+2. The staffing. We recruit, vet, and train your team — tier-1 frontliners through tier-2 technical experts, with a team lead for every five agents. We&#x27;re employer-of-record compliant in 40 countries, so we staff wherever the talent best fits the work — including agents who are genuinely good at selling, because in this engine the service team is a revenue team. We handle the HR and the legal. Agents are omnichannel — phone, chat, email, social, community management — trained on your product, your macros, and your tone before they touch a single customer. And if you already have people you love: even better. The highest-leverage build is a hybrid — your best people upskilled into leaders running offshore frontliners. That&#x27;s how clients land near a third of their previous cost without losing the people who make the brand what it is.
+3. The management. This is the real kicker — the layer nobody else sells. Daily management of the team. QA on the work every week. Coaching and one-on-ones that turn scores into better agents — because if you&#x27;re not coaching, you&#x27;re condoning. Structured onboarding with milestones, so a new agent is productive in days, not months. Workforce management so staffing matches your actual volume curve — no idle seats, no drowning spikes. Seamless replacement when someone needs swapping — you barely notice. And every two weeks, a metrics review with numbers from both sides of the ledger: CSAT, first response time, resolution time, cost per ticket — and the revenue side: saves, reorders, upgrades, reviews captured. Because the moment you measure service like a revenue channel, it starts behaving like one.
+The timeline: live in 30 days — systems built, agents trained and in seats, tickets flowing. Full engine by day 90 — AI dialed in, QA and coaching in rhythm, both sides of the ledger reporting automatically. We&#x27;ve never missed a 30-day setup window.
+And when the engine is running:
+Your cost of service goes down — deflection kills the repetitive volume, routing kills the double-handling, and the management layer makes every agent-hour count. 25% at UTV Source; near a third of previous cost on hybrid builds.
+Your service team starts producing — sales saved before they bounce, upgrades attached to fixes, reviews captured at the happiest moment, reorders triggered instead of hoped for, renewals that stop wobbling.
+Customers get answered in hours on every channel — even during a launch, even in Q4, even when the firmware update breaks something.
+Problems get caught before customers ever feel them.
+And you get your time back. Completely. Our clients will tell you: if they don&#x27;t want to, they don&#x27;t talk to their service team a single hour of the whole month.
+That&#x27;s what it looks like when customer service stops playing defense and starts showing up on the revenue side of your P&amp;L.
+PART 7 — REINSTATE THE BIG PROMISE (10:00 – 10:45)
+And yes — this is exactly what we build for you at Charm.
+Your entire customer service operation, built as an engine — all three parts. The systems that route, deflect, train, and reach out before problems land. The staff, recruited and trained on your brand — and trained to spot the revenue sitting in every conversation. And the management layer — QA, coaching, workforce management, replacement pipeline, bi-weekly numbers — that keeps it sharp without you managing anyone.
+It costs less than what you&#x27;re running today, and it generates revenue while it runs. Live in 30 days. Complete in 90. Built in your stack and documented from day one — keep us running it, or take the management in-house down the line like UTV Source did. Your call, not a contract clause.
+That&#x27;s the offer. That&#x27;s what we do.
+PART 8 — CASE STUDIES / PROOF (10:45 – 12:00)
+Now — is this real? Has it actually worked for someone like you? Yes. A few:
+Sutro — a smart water monitor. Connected hardware, technical tickets, app pairing, firmware. We built and run their entire support operation — over 100,000 tickets a year, full team, full management.
+UTV Source — e-commerce, parts, heavy volume. We rebuilt their systems, restructured the operation, and cut their support labor cost by 25% — then handed the management back to their team. They own it now. That&#x27;s the handover working exactly as designed.
+Best of Hawaii — tourism. We built their full revenue operation including service — a 100-plus person offshore team — and went from zero to $5 million in three years. That&#x27;s what it looks like when service is built as a revenue channel instead of a cost center.
+Fan of a Fan — creator commerce. Over seven years with us. Ten-plus staffed agents, an AI CoPilot we built for tier-1 deflection, full workforce management. Nobody keeps a vendor for seven years unless the engine works.
+And those are four of the hundreds of operations we&#x27;ve run over the last decade — Jacuzzi, New Balance, Roku, Mike Tyson, Jamie Lee Curtis, Crime Junkie, Channel 5, XPRIZE, and dozens more across SaaS, e-commerce, home services, and hardware.
+You&#x27;ll see handles on screen now and in the case studies section below this video. Go message them. Ask what it was like working with us. We haven&#x27;t paid them, we haven&#x27;t briefed them — honestly, they don&#x27;t even know I&#x27;m telling you to do this. But I&#x27;m confident enough in the work that I want you to verify it yourself.
+PART 9 — WHAT YOU GET (12:00 – 14:00)
+Here&#x27;s exactly what&#x27;s included — mapped to the three parts of the engine, so you can see we build all of it:
+The systems:
+Full helpdesk build or rebuild — Zendesk, Freshdesk, Gorgias, or what fits: routing, tagging, views, SLAs, escalation paths
+Complete macro library and knowledge base in your brand voice — including save-the-sale, upgrade, and review-capture plays, not just apologies
+Frontline chatbots and AI deflection — scoped with you, humans on everything that needs judgment
+A full LMS so agent training is a structured course with milestones, not tribal knowledge
+Preemptive-service and outbound workflows — flag-triggered outreach before the customer notices, plus win-back and reorder touches
+Reporting dashboards built for you — cost side and revenue side
+The staffing:
+Recruited, vetted, trained agents — tier-1 frontliners, tier-2 technical experts, and a team lead per five agents
+Omnichannel coverage — phone, chat, email, social DMs, and community management
+Employer-of-record compliance in 40 countries — we handle HR and legal, you handle nothing
+Hybrid builds — your best people upskilled into leaders over offshore frontliners, so you keep the culture and cut the cost
+The management:
+Daily team management, weekly QA scoring, and a coaching loop with one-on-ones that turns scores into improvement
+Structured onboarding with milestones — new agents productive in days
+Workforce management matched to your real volume curve — no idle capacity, no buried spikes
+Seamless underperformer coaching and replacement pipeline — swaps so smooth you barely notice
+Bi-weekly metrics reviews covering both sides of the ledger: CSAT, first response time, resolution time, cost per ticket — and saves, reorders, upgrades, reviews captured
+And wrapped around all three:
+Live in 30 days, full engine by day 90 — a dated build plan you can hold us to
+A dedicated operations lead on our side running all of it — so you don&#x27;t have to talk to your service team a single hour of the month unless you want to
+Direct access to me and my team
+No black box: everything we build lives in your tools, fully documented — helpdesk, macros, SOPs, knowledge base, LMS. If you ever want your own people running the management, the handover is clean. UTV Source did exactly that.
+This isn&#x27;t a BPO contract, and it isn&#x27;t a body in a seat. It&#x27;s a fully built customer service department that pays for itself — and every moving part of it is visible to you.
+PART 10 — OBJECTIONS (14:00 – 15:30)
+If you&#x27;ve watched this far and haven&#x27;t booked yet, you&#x27;ve probably got a couple of questions. The most common:
+&quot;Do I have to fire my current team?&quot; No — the opposite. The best builds are hybrids: the people you love get upskilled into team leads running offshore frontliners. They level up, the brand keeps its culture, and your cost structure drops — that&#x27;s the build where clients land near a third of previous cost.
+&quot;I don&#x27;t want my support team turning into pushy salespeople.&quot; Neither do we — pushy kills the exact trust that makes this work. This isn&#x27;t scripts and quotas. It&#x27;s trained judgment: the right recommendation inside a conversation the customer started. When someone asks about sizing, helping them buy IS the service. When a fix comes with the right upgrade suggestion, customers thank you for it. Revenue from service only works when the service is genuinely great — which is why the QA and coaching layer comes first.
+&quot;We&#x27;re B2B — our tickets are complex. Does this work for us?&quot; Yes. Tier-2 agents are technical experts, and the training system exists exactly for this. We run support for connected hardware — firmware, app pairing, warranty — at six figures of tickets a year. And in B2B the revenue side is even more direct: the support experience is the renewal conversation, months before the renewal call happens.
+&quot;What about quality if agents are offshore?&quot; Quality isn&#x27;t a location property — it&#x27;s a management property. Every agent is trained through your LMS before going live, QA&#x27;d weekly, and coached in one-on-ones. If someone isn&#x27;t performing, we coach them; if they need replacing, we replace them and you barely notice. That layer is the product.
+&quot;Is this just AI support?&quot; No. AI handles the repetitive frontline work — and only where you approve it. Everything that needs judgment gets a trained human. AI is what the cheap vendors are secretly selling you. We use it where it makes the engine cheaper, never where it makes the experience worse.
+&quot;How can you be live in 30 days?&quot; Because the bench exists, the playbooks exist, and we&#x27;ve done this hundreds of times. We&#x27;ve never missed a 30-day setup window. It&#x27;s the operating model, not a marketing line.
+&quot;What happens after day 90?&quot; Most clients keep us running it — there&#x27;s a flexible per-resolution model and a dedicated-agent model depending on your volume and complexity, and we&#x27;ll show you both on the call. And if you&#x27;d rather run it with your own people down the line, the management hands over cleanly — like it did for UTV Source. To be clear about what&#x27;s what: the agents are our team — that&#x27;s how the bench stays trained and the quality stays high — and the machine is yours: the systems, the SOPs, the training, the documentation all live in your stack. You&#x27;re never dependent on a black box.
+&quot;What does it cost?&quot; It depends on your volume, channels, and complexity — but the structure of the answer is what matters: it costs less than what you&#x27;re paying now, and the team produces revenue on top. UTV Source came out 25% cheaper on the same volume; hybrid builds have landed near a third of previous cost. On the call we plug in your actual numbers and you&#x27;ll see the full comparison — current spend versus engine cost, plus where the revenue comes from at your scale. You&#x27;ll know in 30 minutes.
+&quot;My peak season / next launch is coming — wrong time?&quot; It&#x27;s the reason to move now. Live in 30 days means the engine is standing before the spike hits. And spikes are where the revenue side pays hardest — peak volume is peak buying intent.
+&quot;How is this different from a BPO?&quot; A BPO sells you one of the three parts — seats — and bills whether the work exists or not. And a BPO will never make you a dollar; their entire model is being a slightly cheaper cost center. We build all three parts, we&#x27;re accountable to a dated build plan and bi-weekly numbers on both sides of the ledger, and because everything we build lives in your stack — your helpdesk, your SOPs, your documentation — you always have a clean exit. A vendor you can leave is a vendor that has to stay good. Opposite incentives, opposite outcome.
+&quot;What if it doesn&#x27;t work?&quot; Book the call and ask me directly. I&#x27;ll tell you exactly how we handle that.
+PART 11 — FINAL CTA (15:30 – 17:00)
+So — if support is the line item that only goes up and gives nothing back… if the only return you can point to is &quot;fewer angry customers&quot;… if every fix you&#x27;ve tried was just a cheaper body on the same broken machine…
+And you want the actual engine — systems built, staff trained, management running, every channel covered — that costs less than what you&#x27;re running today and generates revenue while it runs…
+That&#x27;s exactly what we build with you at Charm.
+On the call, we&#x27;ll do the read on your operation — volume, channels, stack, team, and what you&#x27;re spending today. I&#x27;ll show you exactly what we&#x27;d build in the first 30 days, what the full engine looks like at day 90, and the numbers on both sides: what it costs versus what you&#x27;re paying now, and where the revenue comes from at your scale.
+If it makes sense, we move forward. If not, no hard feelings — you&#x27;ll walk away with an honest read on where your service operation is leaking money, where it&#x27;s leaving revenue on the table, and exactly what we&#x27;d fix if we were in your seat.
+And look — I&#x27;ll tell you the same thing I tell every client: our goal isn&#x27;t to sell you customer service. Our goal is to make you the most money in the most efficient way possible. Service just happens to be the place where we can prove it fastest — because the revenue is already sitting in your queue.
+If I&#x27;m wrong, you lose 30 minutes of your day.
+If I&#x27;m right? You&#x27;ll join Pepsi, Jacuzzi, New Balance, Roku, Sutro, and hundreds of others — and customer service stops being the cost you defend in budget meetings and becomes an engine that pays for itself.
+Hit the button below this video, pick a time, and let&#x27;s talk.
+APPENDIX — Reusable assets
+One-liner (for ads / LinkedIn / top of page): Your customer service team is a cost center. We turn it into an engine — one that runs cheaper than what you have today and actually generates revenue.
+The belief-break line (reusable everywhere): &quot;Stop treating customer service like a revenue-retention center. Every ticket is a customer who already gave you money, talking to you right now — that&#x27;s a revenue-generation center nobody&#x27;s ever staffed like one.&quot;
+On-screen triad (three columns, use during Part 5/6):
+SYSTEMS — Everyone: assumes yours work. Charm: helpdesk, macros, LMS, AI deflection, preemptive + win-back outreach — built.
+STAFFING — Everyone: a body in a seat, billed either way. Charm: recruited, trained, omnichannel, EOR in 40 countries — or your people, upskilled.
+MANAGEMENT — Everyone: doesn&#x27;t exist. Charm: QA weekly, coaching weekly, WFM, replacement pipeline, numbers on both sides of the ledger.
+The hands-off line: &quot;Our clients don&#x27;t talk to their service team a single hour of the whole month — unless they want to.&quot;
+The no-black-box line (the anti-BPO kill shot): &quot;Everything we build lives in your stack, documented — your helpdesk, your SOPs, your training. You keep us because it works, not because you&#x27;re stuck. UTV Source took the management in-house; the machine went with them.&quot;
+Alternative strict-Howitzer open (swap in if the cold open feels off on camera): &quot;If you&#x27;re paying for a customer service team right now — software, physical products, or services — you own a cost center. We turn it into an engine that costs a fraction of what you&#x27;re paying today and generates revenue.&quot;
+The vision close (Chris verbatim, from Day.ai): &quot;Our goal is not to sell customer service. It is to make our clients the most money in the most efficient way possible.&quot;
+VERIFICATION — confirm before recording
+Sutro 100k+ tickets/yr · UTV Source 25% + management handover · Fan of a Fan 7+ yrs / 10+ agents / AI CoPilot · Best of Hawaii 0→$5M / 3 yrs / 100+ offshore team — all verified from site + Gorgias records.
+Handover scope CORRECTED (Chris 2026-07-09): staff stay Charm&#x27;s. Handover = management + systems only (UTV Source precedent; &quot;management handover&quot; is the listed site capability). All &quot;take the whole thing in-house / it&#x27;s yours / staff transfer&quot; copy removed. Optional business decision, NOT in copy: a staff-buyout clause would make &quot;hire the team from us&quot; literally true — Chris decides.
+Pepsi, New Balance, Jamie Lee Curtis, Mike Tyson — your words in Day.ai calls, NOT on the public site. Confirm each is contractually/relationally safe on a recorded public VSL.
+&quot;Near a third of previous cost&quot; on hybrid builds — from your Suspension Direct pitch; that was a projection. Confirm a delivered case, or soften.
+&quot;Costs a fraction of what you&#x27;re paying today&quot; (unhedged) + revenue-generation framing — per your direction 2026-07-09. Revenue claims kept directional; Best of Hawaii is the anchor proof.
+&quot;We&#x27;ve never missed a 30-day setup window&quot; — directional fallback; contractual &quot;or we run it free until live&quot; still pending your sign-off.
+Yes Theory / Seek Discomfort — former client, deliberately excluded.</div></details></div><div class="item" style="border-left-color:#8733ed">
+  <div class="ihead"><span class="badge" style="background:#8733ed">🟣 Priority 3</span><span class="icat">GTM VSL</span></div>
+  <div class="iwhat">Core GTM offer VSL — every decision maker in 90 days ("script two"). <b>Already has a first edit</b> — see the reel deliverables below.</div>
+  <div class="files"><div class="file"><span class="fname">A023_06290104_C005.mov</span><span class="fnote">Folder A — raw</span></div><div class="file"><span class="fname">&amp;#127916; Finished edit</span><span class="fnote"><a href="https://drive.google.com/file/d/1RJwJWWwMkxOszztUehOg_jQuq8_IXnfc/view" target="_blank">open the edited GTM VSL &#8599;</a></span></div></div><details class="scr"><summary>▸ Full GTM VSL script</summary><div class="scr-body">PART 1 — THE HOOK (0:00 – 2:30)
+&quot;If you run a B2B service business, we&#x27;ll put your offer in front of every decision maker in your market within 90 days, through a fully built outbound machine that runs cold email and LinkedIn at the same time.
+We&#x27;ve done it for dozens of service businesses, agencies, SaaS companies, consultants, and B2B operators across the US, UK, Australia, and the Netherlands. I believe in these systems so much I built and grew my own SaaS using them, just to prove they work.
+This way, you stop wondering where your next deal is coming from, your calendar fills with qualified calls from buyers who already know who you are by the time they reply, and you finally have a predictable, top-of-funnel pipeline that doesn&#x27;t rely on referrals, paid ads, or you personally posting on LinkedIn five times a week.
+And if you&#x27;ve tried it all before — maybe you hired an SDR who burned $8K a month and booked nothing… maybe you worked with an agency that delivered &quot;leads&quot; who didn&#x27;t even remember opting in… maybe you tried DIY cold email and got your domain blacklisted in 30 days… or maybe you ran LinkedIn outreach yourself and got crickets — this is completely different.
+Because we don&#x27;t sell you leads. We don&#x27;t sell you &quot;appointments.&quot; And we sure as hell don&#x27;t sell you a list.
+We build the entire outbound infrastructure — the domains, the inboxes, the warmup, the LinkedIn accounts, the copy, the targeting, the offer positioning, the reply handling — and we run it under one system designed to hit every decision maker in your TAM inside of a single quarter.
+If that sounds like exactly what you&#x27;ve been missing, there&#x27;s a button below this video to book a quick call with my team. We&#x27;ll look at your offer, your current outbound (or lack of it), and show you exactly how we&#x27;d roll this out for your business in the next 90 days.
+If you need more info first — stick around. Let me show you who I am, why this works when everything else hasn&#x27;t, and what you actually get when we work together.
+
+PART 2 — EARLY CTA (2:30 – 3:00)
+Now if that sounds like exactly what you&#x27;ve been looking for — if you already know your outbound is broken and you want it actually fixed by people who do this every single day — there&#x27;s a button below this video. Book the call.
+We&#x27;ll walk through your offer, your current sales process, and I&#x27;ll show you exactly what we&#x27;d build for you, start to finish.
+If you&#x27;re still on the fence, or you&#x27;ve been burned so many times that you assume every outbound agency is full of it — totally fair. Stick around. I&#x27;ll show you exactly why this works, who it works for, and what makes it different from the 50 other &quot;we&#x27;ll book you meetings&quot; pitches in your inbox.
+
+PART 3 — THE INTRODUCTION (3:00 – 4:00)
+Quick step back — let me tell you who I am and why you should listen to me on this in the first place.
+My name is Chris, and I&#x27;m the founder of Charm. We&#x27;re a GTM agency that&#x27;s run outbound campaigns for hundreds of service businesses — everyone from solo consultants doing $40K months to companies you&#x27;ve actually heard of like [client], [client], and [client].
+I&#x27;ve personally architected outbound systems that have generated tens of millions of dollars in pipeline. I built my OWN company using my agencies systems. I&#x27;ve sent — no joke — tens of millions of cold emails. I&#x27;ve managed thousands of inboxes. I&#x27;ve built deliverability infrastructure that survives Google and Microsoft&#x27;s algorithm changes when everyone else&#x27;s setup dies.
+I&#x27;m not telling you this to flex. I&#x27;m telling you this so you understand: when I say &quot;we&#x27;ll hit every decision maker in your market in 90 days,&quot; it&#x27;s not a marketing line. It&#x27;s just what we do, every day, for clients who pay us to do it.
+
+PART 4 — THE CORE PROBLEM (4:00 – 6:00)
+Here&#x27;s what I&#x27;m guessing is going on for you right now.
+You&#x27;ve got a real offer. You know it works. You&#x27;ve got happy clients, case studies, maybe even a referral or two trickling in. But the pipeline is inconsistent as hell.
+Some months are great. Some months are dead. You can never quite predict which one&#x27;s coming.
+And it&#x27;s frustrating — because every business guru, every podcast, every LinkedIn post tells you the same thing: &quot;just do outbound.&quot; So you&#x27;ve tried.
+Maybe you hired an SDR. Paid them $5-8K a month plus commission. Watched them send 40 emails a day, book one meeting in their first 60 days, and slowly realize they have no idea what they&#x27;re doing. Either you fired them, or they quit. Either way — you&#x27;re out tens of thousands of dollars and back to square one.
+Maybe you hired an agency. They promised the world, charged you $4K a month, and started sending generic templated junk from a domain you didn&#x27;t even know existed. The &quot;leads&quot; they booked were tire kickers, students, or people who&#x27;d already opted into ten other lists. You churned in 90 days.
+Maybe you tried doing it yourself. Bought Instantly or Smartlead, watched a few YouTube videos, sent 500 emails a day from your main domain — and within three weeks you couldn&#x27;t even email your mom without it going to spam.
+Maybe you ran LinkedIn outreach. Connected with a bunch of ICP prospects. Sent thoughtful messages. Got 2% reply rates and a couple of &quot;not interested&quot; responses.
+And the worst part isn&#x27;t even the wasted money. The worst part is that you&#x27;re now sitting in this weird middle ground where you know outbound should work — your competitors are clearly doing it — but you have no idea what you&#x27;re doing wrong.
+It&#x27;s pissing you off. Because your business is plateaued. You&#x27;re capped at whatever referrals trickle in this month. You can&#x27;t forecast revenue, you can&#x27;t hire confidently, and you definitely can&#x27;t scale.
+If that&#x27;s where you&#x27;re at right now — I get it. We talk to founders in exactly this situation every single day.
+
+PART 5 — THE FALSE SOLUTION (6:00 – 8:00)
+Now here&#x27;s where most people get this completely wrong.
+Most service business owners think the reason their outbound isn&#x27;t working is because they need better copy. Or better lists. Or more volume. Or a better hook.
+So they keep tweaking subject lines. They buy a new lead database. They go from sending 500 emails a day to 5,000. They hire a copywriter on Upwork to rewrite their sequences.
+And it still doesn&#x27;t work.
+The reason it doesn&#x27;t work isn&#x27;t because your copy is bad. It&#x27;s not because your list is bad. It&#x27;s not even because your offer is bad.
+It&#x27;s because outbound in 2026 is an infrastructure game, not a copy game.
+The platforms — Google, Microsoft, LinkedIn — have gotten so good at filtering, throttling, and shadowbanning that 90% of the cold outreach being sent on the planet right now is landing in spam, getting throttled to nothing, or hitting a LinkedIn account that&#x27;s been quietly limited.
+You can have the best copy in the world. If your domains aren&#x27;t warmed properly, your DNS records aren&#x27;t dialed, your sending pattern looks robotic, your LinkedIn account is sending more than 25 connections a day from a US IP it doesn&#x27;t normally use — you&#x27;re cooked. Your message never gets seen.
+And the second piece — even when deliverability is solved — almost everyone runs cold email and LinkedIn as two separate channels. Cold email goes here. LinkedIn goes there. No coordination. No reinforcement.
+That&#x27;s why your prospects feel like they&#x27;re getting hit by a stranger every time. There&#x27;s no pattern. No familiarity. No reason to reply.
+The actual mechanism that works in 2026 isn&#x27;t &quot;send more emails&quot; or &quot;write better hooks.&quot;
+It&#x27;s a multi-channel, multi-domain, multi-account infrastructure that hits the same prospect across email and LinkedIn in a coordinated sequence — so by the time they see your third or fourth touch, you&#x27;re not a stranger anymore. You&#x27;re familiar. And familiar gets replies.
+That&#x27;s the part nobody talks about. That&#x27;s the part the SDR you hired didn&#x27;t know. That&#x27;s the part the $4K/month agency wasn&#x27;t doing. That&#x27;s the part the YouTube videos skip over.
+And it&#x27;s the part that, when you actually do it correctly, makes outbound feel like a faucet you turn on.
+
+PART 6 — THE REAL SOLUTION + FUTURE PACE (8:00 – 10:00)
+What you actually need is a complete outbound system — built from the ground up around how decision makers in your market actually engage with cold outreach in 2026.
+Not just a campaign. A system.
+A system where the infrastructure — domains, inboxes, LinkedIn accounts, warmup, deliverability — is built correctly from day one so your messages actually reach the inbox.
+A system where cold email and LinkedIn run in coordinated sequence on the same prospect, so by touch three or four they recognize your name.
+A system where the copy is written around your actual offer and your actual prospect&#x27;s actual problems — not generic templates with their first name slapped on.
+A system that intelligently tells when your prospect is experiencing pain that you solve, so your offer appears in front of them their highest impact moments. 
+A system that can scale from 500 prospects a month to 50,000 a month without your domain reputation going to zero.
+A system that runs without you having to think about it, manage it, or babysit it.
+And when you have a system like this, in 90 days:
+You&#x27;ll have hit every single decision maker in your TAM. Not &quot;some.&quot; Every one of them.
+You&#x27;ll have a calendar that fills predictably — booked calls from prospects who actually know who you are
+You&#x27;ll stop praying for referrals
+You&#x27;ll be able to actually forecast revenue for the first time
+You&#x27;ll know what your CAC is, what your reply rate is, what your meeting-to-close ratio is — real numbers, not vibes
+You&#x27;ll have outbound running quietly in the background while you focus on closing deals and delivering work
+And most importantly — you&#x27;ll never again have a month where you wonder where your next client is coming from
+That&#x27;s what predictable pipeline actually looks like.
+
+PART 7 — REINSTATE THE BIG PROMISE (10:00 – 10:45)
+And yes — this is exactly what we build for you at Charm.
+A fully managed outbound system, designed specifically for service businesses, that puts your offer in front of every decision maker in your market within 90 days.
+A system that doesn&#x27;t rely on referrals. A system that doesn&#x27;t require you to hire and train SDRs. A system that doesn&#x27;t burn your main domain or get your LinkedIn restricted. A system that runs across both channels, coordinated, at scale, and quietly fills your calendar while you run your business.
+That&#x27;s the offer. That&#x27;s what we do.
+
+PART 8 — CASE STUDIES / PROOF (10:45 – 12:00)
+Now — is this real? Has this actually worked for someone like you?
+Yes. Here&#x27;s a few:
+We helped HelloHero map every decision maker at every single high school in the United States — and built over $30 million in pipeline in three months.
+We helped Spout Water land over 700 positive responses in four months — including names like The North Face and Costco replying and asking to talk.
+And Search Atlas — a SaaS company that came to us averaging one positive response a day with their previous lead gen agency, run by one of the biggest names in the space. Inside 30 days, we increased their results by around 500%. We&#x27;re still working together, still scaling it. And honestly, the cleanest proof I can give you is this: as I&#x27;m recording this video, we booked them seven meetings today. Their average over three months with the last agency was one a day. We did seven before lunch.
+And those are three of the dozens of service businesses we&#x27;ve run this exact playbook for.
+You&#x27;ll see their handles on screen now and in the case studies section below this video. Go message them. Ask what it was like working with us. We haven&#x27;t paid them, we haven&#x27;t briefed them — honestly, they don&#x27;t even know I&#x27;m telling you to message them. But I&#x27;m confident enough in the work we did that I want you to verify it yourself.
+And those are three of the dozens and dozens service businesses we&#x27;ve run this exact playbook for over the last several years.
+You&#x27;ll see all of their handles on screen now, and in the case studies section below this video. You can message them. Ask them what it was like working with us. We haven&#x27;t paid them, we haven&#x27;t briefed them — honestly, they don&#x27;t even know I&#x27;m telling you to message them. But I&#x27;m confident enough in the work we&#x27;ve done that I want you to verify it yourself.
+
+PART 9 — WHAT YOU GET (12:00 – 14:00)
+Here&#x27;s exactly what&#x27;s included when you work with us:
+Full outbound infrastructure setup — domains, inboxes, DNS, warmup pipelines, deliverability monitoring. Built for you, managed by us.
+LinkedIn automation across multiple accounts — fully integrated with your email sequences so your prospects get hit on both channels in coordinated rhythm.
+Custom copy written by our team — based on your offer, your ICP, and the language your prospects actually use. No templates, no spintaxed garbage you&#x27;ve seen a hundred times.
+Lead sourcing and enrichment via Clay — so we hit the right people with the right signal, not a $50 Apollo dump that everyone else is already emailing.
+Reply handling and routing — replies come into a unified inbox, get qualified, and warm responses get pushed straight to your calendar.
+Weekly reporting and optimization — so you know exactly what&#x27;s working, what&#x27;s being tested, and what&#x27;s getting booked.
+Direct access to me and my team — so when something needs adjusting, you don&#x27;t sit in a ticket queue. You message us and it gets handled.
+Ongoing campaign management for the full 90 days and beyond — we don&#x27;t hand you a campaign and walk away. We run it.
+This isn&#x27;t a &quot;build it and bounce&quot; agency. It&#x27;s a fully managed outbound function for your business.
+
+PART 10 — OBJECTIONS (14:00 – 15:30)
+If you&#x27;ve watched this far and haven&#x27;t booked a call yet, you&#x27;ve probably got a couple questions. Here are the most common:
+&quot;Won&#x27;t this hurt my domain reputation?&quot; No — because we don&#x27;t send from your main domain. We register and warm secondary domains specifically for outbound, so your primary inbox stays untouched.
+&quot;How fast do we see results?&quot; First booked meetings usually land in weeks 3–5. The full system hits stride around day 60, and we&#x27;re at full TAM coverage by day 90.
+&quot;What if my offer isn&#x27;t dialed in yet?&quot; We help with that. Positioning and offer refinement is built into the first two weeks before we ever send a message.
+&quot;What industries does this work for?&quot; Any service business with a clearly defined B2B ICP and an ACV of at least $5K. Agencies, consultants, SaaS, B2B services, professional services — all of it.
+&quot;How is this different from the last agency that burned me?&quot; Most agencies sell you &quot;leads&quot; or &quot;meetings&quot; and outsource the actual work to a VA in another country. We build the infrastructure ourselves, write the copy ourselves, and manage the campaigns ourselves. You&#x27;re not a number in a queue of 80 clients.
+&quot;What if it doesn&#x27;t work?&quot; Book the call, ask me directly. I&#x27;ll tell you exactly how we handle that.
+
+PART 11 — FINAL CTA (15:30 – 17:00)
+So — if you&#x27;re still stuck praying for referrals, burning money on SDRs who can&#x27;t book, or watching your competitors run circles around you on LinkedIn while your pipeline sits empty…
+And you want to finally install a real outbound system that hits every decision maker in your market in the next 90 days — fully built, fully managed, fully done for you…
+That&#x27;s exactly what we build with you at Charm.
+On the call, we&#x27;ll look at your current offer, your current outbound (or lack of it), and your ICP. I&#x27;ll show you exactly what we&#x27;d build for you, what the timeline looks like, what it costs, and what kind of results you should expect in the first 90 days.
+If it makes sense, we move forward. If not, no hard feelings — you&#x27;ll still walk away with a clear breakdown of what&#x27;s broken in your current outbound and exactly what we&#x27;d do to fix it if we were in your shoes.
+If I&#x27;m wrong, you lose 30 minutes of your day.
+If I&#x27;m right? You&#x27;ll join the 200+ service businesses we&#x27;ve built predictable, scalable outbound machines for — and you&#x27;ll never have another month where you wonder where your next client is coming from.
+Hit the button below this video, pick a time, and let&#x27;s talk.</div></details></div><div class="item" style="border-left-color:#2563eb">
+  <div class="ihead"><span class="badge" style="background:#2563eb">🟢 Priority 4</span><span class="icat">Consulting</span></div>
+  <div class="iwhat">One-on-one consulting pitch (as recorded — no separate long-form script on the board).</div>
+  <div class="files"><div class="file"><span class="fname">A034_07101016_C001.mov</span><span class="fnote">Folder B · A-cam</span></div><div class="file"><span class="fname">B021_06231458_C002.mov</span><span class="fnote">Folder B · B-cam</span></div></div><details class="scr"><summary>▸ Script (as recorded)</summary><div class="scr-body">I&#x27;ll save you the marketing creative and cut straight to the chase. I work one-on-one with a small group of founders each quarter to get them from where they are to $1M.</div></details></div><div class="item" style="border-left-color:#c9a227">
+  <div class="ihead"><span class="badge" style="background:#c9a227">🟡 Priority 5</span><span class="icat">GTM Ads (5)</span></div>
+  <div class="iwhat">Short-form direct-to-camera ads. Quick turns — can run in parallel with the VSLs. Specs below.</div>
+  <div class="ad"><div class="ad-top"><span class="fname">A023_06290152_C007.mov</span> — <span class="ad-name">&ldquo;Hired an agency&rdquo; (Burned Before)</span></div><details class="scr"><summary>▸ Script</summary><div class="scr-body">&quot;You&#x27;ve probably hired an agency before. They sent a bunch of emails, booked a few garbage meetings, and then blamed your offer when it didn&#x27;t work. That&#x27;s not strategy that&#x27;s hoping. We do it differently. We test creative angles fast, find what resonates, and only scale what&#x27;s actually working. If you want outbound that&#x27;s built on thinking, not just sending, click the link and book a call.&quot;
+
+See you there.&quot;</div></details></div><div class="ad"><div class="ad-top"><span class="fname">A023_06290152_C007.mov</span> — <span class="ad-name">&ldquo;Not getting enough meetings&rdquo; (2nd read on same clip)</span></div><details class="scr"><summary>▸ Script</summary><div class="scr-body">Are you a B2B company with a proven offer who just isn&#x27;t getting enough at-bats? Let me show you the math most agencies won&#x27;t put in front of you, because it exposes what they&#x27;re actually selling you.
+
+Most agencies sell you sends. We sell you targeting. Here&#x27;s the difference. 
+
+We&#x27;re running hundreds of active campaigns right now, and that gives us live signal on who&#x27;s actually opening, replying, and buying in your market this week, not last quarter. So when we send tens of thousands of touches a month on your behalf, they&#x27;re not sprayed at a list. They&#x27;re aimed.
+
+That&#x27;s why this consistently books twenty to sixty qualified calls a month on your calendar, and why our clients close twenty to twenty-five percent of them. Run it out: forty calls, close a quarter, ten new customers a month, on repeat.
+
+A cheap agency runs a tool and hopes. We engineer the targeting around real-time data nobody else has access to. Same offer, completely different output.
+
+And if you&#x27;re not satisfied after ninety days, we rebuild the entire system on our dime. We only win when you win.
+
+Want the full breakdown? I made a video you can watch with no opt-in. Click Learn More to see it. Hope to see you there.</div></details></div><div class="ad"><div class="ad-top"><span class="fname">A023_06290158_C008.mov</span> — <span class="ad-name">&ldquo;I own the whole system&rdquo; / Infrastructure</span></div><details class="scr"><summary>▸ Script</summary><div class="scr-body">Most outbound fails before the first email goes out, because the infrastructure underneath it is broken. I&#x27;ll build you the version that actually works. Let me show you how.
+
+You pay me once, and for the next ninety days I own the whole system end to end. We buy and configure the domains and inboxes so you can send at scale without ever tripping spam filters. We build you the biggest clean list we can pull, matched tightly to your ICP. We design the campaign strategy around what&#x27;s actually converting right now, because we&#x27;ve got hundreds of active campaigns telling us what works this week, not last year.
+
+Once it&#x27;s live, we run the inbox. Five-minute response time, around the clock, so no booked meeting ever slips. Campaigns launch inside two weeks. Then we run them together for seventy-five days, tuning performance and reporting back the whole way.
+
+Your job is simple. Fill out a form now, and take the calls we tee up for you.
+
+If you&#x27;re selling into a large market and you want outbound that&#x27;s engineered instead of guessed, hit &quot;Learn More&quot; below. 
+
+There&#x27;s a short video on the next page where I go deeper on the offer. If you think it fits, book a call with me directly and we&#x27;ll see if it&#x27;s right for you. Talk soon.</div></details></div><div class="ad"><div class="ad-top"><span class="fname">A023_06290205_C009.mov</span> — <span class="ad-name">&ldquo;Every decision maker in 90 days&rdquo; (Costco / North Face / Google)</span></div><details class="scr"><summary>▸ Script</summary><div class="scr-body">Are you a B2B service business with a proven offer, but your pipeline still runs on referrals and luck? In the last two weeks, we booked calls with Costco, Northface, and Google. We built one client $30 million in pipeline in three months. And we even helped one of our own people become the world champion at Clay. Same system, same processes every time. Here&#x27;s exactly how we do it. One, we dig up every decision maker in your entire market and pull their names, emails, LinkedIn, and phone numbers. Two, we build a full machine across cold email, LinkedIn, and warm dialing. Then we staff and run it for you. Three, every month, we send tens of thousands of emails and DMs on your behalf. And the second someone shows interest, we get them on the phone. So by the time you talk to a prospect, they already know your name. You touch none of it. So instead of an SDR who burns eight grand a month and books nothing or a cheap agency that blasts garbage and torches your reputation, you get a whole team on your account for less than that one hire. And look, we don&#x27;t just run this for our clients. We trusted these exact systems enough to build our own SaaS in an industry we don&#x27;t even work in and take it past 100 paying users in just two months. We bet on this stuff with our own name all the time. And if we don&#x27;t deliver in 90 days, we fix the whole thing on our dime. You already knew that. I broke it all down in a short video. Click the link below and check it out.</div></details></div><div class="ad"><div class="ad-top"><span class="fname">A034_07101156_C005.mov</span> — <span class="ad-name">&ldquo;All-in-one outbound engine&rdquo; (+B-cam B021_…C006)</span></div><details class="scr"><summary>▸ Script</summary><div class="scr-body">What if we came into your business and sent hundreds of thousands of cold emails a month completely done for you — the market research, the lead lists, the copywriting, the sending infrastructure, the reply handling — booking qualified sales calls straight onto your calendar without you having to lift a finger?
+That&#x27;s exactly what we do with our all-in-one outbound engine.
+You&#x27;re seeing this video for a reason. So if you&#x27;re ready to get more qualified calls and clients for your business, click the link below to fill out the form and see if we&#x27;re a good fit. If we are, I&#x27;ll show you exactly how we&#x27;d run this in your business. And if we don&#x27;t think we can help you grow, we&#x27;ll let you know — and we won&#x27;t take your money.
+Click the link below and let&#x27;s fill your calendar.</div></details></div></div><div class="item" style="border-left-color:#0d9488">
+  <div class="ihead"><span class="badge" style="background:#0d9488">🎬 From the finished VSL</span><span class="icat">Reels cut from the GTM VSL</span></div>
+  <div class="iwhat">Pull short-form ads/reels out of the <b>already-edited GTM VSL</b> (<a href="https://drive.google.com/file/d/1RJwJWWwMkxOszztUehOg_jQuq8_IXnfc/view" target="_blank">open it &#8599;</a>). No new footage — these are cut-downs.</div>
+  <div class="deliv">
+    <div class="deliv-h">Deliverable</div>
+    <b>3–5 vertical reels</b>, each built around one strong moment from the VSL. Suggested hooks to pull:
+    <ul>
+      <li>&ldquo;In the last two weeks we booked calls with <b>Costco, North Face, and Google</b>.&rdquo;</li>
+      <li>&ldquo;We built one client <b>$30M in pipeline in three months</b>.&rdquo;</li>
+      <li>&ldquo;Every decision maker in your market — <b>in 90 days</b>, done for you.&rdquo;</li>
+      <li>&ldquo;I believe in this so much I <b>built my own SaaS</b> using it, just to prove it works.&rdquo;</li>
+      <li>&ldquo;Stop wondering where your <b>next deal</b> is coming from.&rdquo;</li>
+    </ul>
   </div>
-  <div class="script"><div class="script-h">Script</div>If you've got a drop coming, a launch on the calendar, or a seasonal spike about to hit, I'll give you a fully trained, on-brand customer service team that handles every ticket across email, chat, and social — and you only pay when they actually solve one.
-
-Real human agents, live in 48 hours, and they sound like your brand on day one. Just like we've done for Friday Beers, Channel 5 News, Pizzafy by Airrack, Peter Diamandis at XPRIZE, and Woo More Play.
-
-[Proof] We handled CS for Friday Beers — one of the biggest creator brands on the internet. When they run their weekend drops, we solve thousands of tickets in hours, then back off as it gets quiet. Live in 48 hours, and the brand voice is indistinguishable from the team.</div>
 </div>
-
-<!-- P2 CS ENGINE -->
-<div class="item" style="border-left-color:var(--cs)">
-  <div class="ihead"><span class="badge" style="background:var(--cs)">🔴 Priority 2</span><span class="icat">CS-Engine VSL</span></div>
-  <div class="iwhat">Turn customer service from a cost center into a revenue engine. Recorded in the earlier session — an entirely different script from CS-Flex.</div>
-  <div class="files">
-    <div class="file"><span class="fname">A034_07101121_C004.mov</span><span class="fnote">Folder B · A-cam</span></div>
-    <div class="file"><span class="fname">B021_06231602_C005.mov</span><span class="fnote">Folder B · B-cam</span></div>
-  </div>
-  <div class="script"><div class="script-h">Script (hook)</div>Your customer service team is a cost center. Whether you sell software, physical products, or services — we turn it into an engine that costs a fraction of what you're paying today and generates revenue. Not "protects" revenue. Generates it. Live in 30 days, complete in 90.
-
-Every ticket in your queue right now is a customer who already gave you money, talking to you in this moment — the warmest traffic your company will ever get, and you've been staffing it like a cost problem. The engine that fixes it has three parts: the systems, the staffing, and the management. Most companies hire a body, skip the other two, and hope. We build all three — for over a decade, for Jacuzzi, New Balance, Roku, Mike Tyson, Crime Junkie, Channel 5, XPRIZE, and Sutro (100,000+ tickets a year).</div>
+<div class="specs">
+  <div class="specs-h">📐 Ad / reel specs (applies to all short-form above)</div>
+  <ul>
+    <li><b>Aspect:</b> 9:16 vertical master. Add 1:1 / 4:5 versions if easy.</li>
+    <li><b>Length:</b> ads 15–45s · reels 15–30s.</li>
+    <li><b>Hook:</b> strongest line + visual in the first <b>3 seconds</b>.</li>
+    <li><b>Captions:</b> burned-in, sound-off friendly.</li>
+    <li><b>End:</b> clear CTA + Charm brand card ("book a call" / "link below").</li>
+    <li><b>Deliver:</b> one master per concept; flag if you need copy for on-screen text.</li>
+  </ul>
 </div>
-
-<!-- P2 GTM VSL -->
-<div class="item p2">
-  <div class="ihead"><span class="badge b-p2">🟣 Priority 3</span><span class="icat">GTM VSL</span></div>
-  <div class="iwhat">The core GTM offer VSL — every decision maker in 90 days. Slated "script two."</div>
-  <div class="files"><div class="file"><span class="fname">A023_06290104_C005.mov</span><span class="fnote">Folder A</span></div></div>
-  <div class="script"><div class="script-h">Script</div>If you run a B2B service business, we'll put your offer in front of every decision maker in your market within 90 days — through a fully built outbound machine that runs cold email and LinkedIn at the same time.
-
-We've done it for dozens of service businesses, agencies, SaaS companies, consultants, and B2B operators across the US, UK, Australia, and the Netherlands. I believe in these systems so much, I built and grew my own SaaS using them, just to prove they work.
-
-This way, you stop wondering where your next deal is coming from — your calendar fills with qualified calls.</div>
-</div>
-
-<!-- P3 Consulting -->
-<div class="item p3">
-  <div class="ihead"><span class="badge b-p3">🟢 Priority 4</span><span class="icat">Consulting</span></div>
-  <div class="iwhat">One-on-one consulting pitch.</div>
-  <div class="files">
-    <div class="file"><span class="fname">A034_07101016_C001.mov</span><span class="fnote">Folder B · A-cam</span></div>
-    <div class="file"><span class="fname">B021_06231458_C002.mov</span><span class="fnote">Folder B · B-cam</span></div>
-  </div>
-  <div class="script"><div class="script-h">Script</div>I'll save you the marketing creative and cut straight to the chase. I work one-on-one with a small group of founders each quarter to get them from where they are to $1M.</div>
-</div>
-
-<!-- P4 GTM ADS -->
-<div class="item p5">
-  <div class="ihead"><span class="badge b-p5">🟡 Priority 5</span><span class="icat">GTM Ads (4)</span></div>
-  <div class="iwhat">Short-form ads — quick turns, can run in parallel with the VSLs.</div>
-  <div class="files">
-    <div class="file"><span class="fname">A023_06290152_C007.mov</span><span class="fnote">Folder A — "Hired an agency" / Burned Before (2 reads on this clip)</span></div>
-    <div class="file"><span class="fname">A023_06290158_C008.mov</span><span class="fnote">Folder A — "I own the whole system" / Infrastructure</span></div>
-    <div class="file"><span class="fname">A023_06290205_C009.mov</span><span class="fnote">Folder A — "Every decision maker in 90 days" (Costco / North Face / Google)</span></div>
-    <div class="file"><span class="fname">A034_07101156_C005.mov</span><span class="fnote">Folder B (+B-cam B021_…C006) — "All-in-one outbound engine"</span></div>
-  </div>
-  <div class="script"><div class="script-h">Scripts</div><b>Hired an agency:</b> You've probably hired an agency before. They sent a bunch of emails, booked a few garbage meetings, then blamed your offer when it didn't work. That's not a strategy — that's hoping. We do it differently: we test creative angles fast, find what resonates, and only scale what's actually working. If you want outbound built on thinking, not just sending — click the link and book a call.
-
-<b>I own the whole system:</b> Most outbound fails before the first email ever goes out, because the infrastructure underneath it is broken. You pay me once, and for the next 90 days I own the whole system end to end — we buy and configure the domains and inboxes so you can send at scale without tripping spam filters, build the biggest clean signal-based list matched to your ICP, then design the campaign around what's converting right now.
-
-<b>Every decision maker in 90 days:</b> Are you a B2B service business with a proven offer, but your pipeline still runs on referrals and luck? In the last two weeks we booked calls with Costco, North Face, and Google, and built one client $30M in pipeline in three months. Same system every time: we pull every decision maker in your market, then hit them with cold email and LinkedIn at the same time.
-
-<b>Outbound engine:</b> What if we came into your business and sent hundreds of thousands of cold emails a month, completely done for you — the research, the lists, the copy, the sending infrastructure, and the reply handling — booking qualified calls straight onto your calendar without you lifting a finger? That's our all-in-one outbound engine.</div>
-</div>
-
-<div class="excl">
-  <b>Not going to the editor / skip:</b><br>
-  • <b>Resurrection</b> (re-engagement flow — "if you're getting this, we've talked in the last 7 years"): <code>A034_…C002</code>, <code>A034_…C003</code>, <code>B021_…C003</code>, <code>B021_…C004</code> — per Chris, not an editor deliverable.<br>
-  • <b>Slate / test clips:</b> <code>B021_06231455_C001.mov</code> ("there we go") and <code>A023_06290125_C006.mov</code> (setup chatter only).
-</div>
-
+<div class="excl"><b>Not going to the editor / skip:</b><br>
+  • <b>Resurrection</b> (re-engagement — "if you're getting this, we've talked in the last 7 years"): <code>A034_…C002</code>, <code>A034_…C003</code>, <code>B021_…C003</code>, <code>B021_…C004</code>.<br>
+  • <b>Slate / test:</b> <code>B021_06231455_C001.mov</code> and <code>A023_06290125_C006.mov</code>.</div>
 </div></body></html>
