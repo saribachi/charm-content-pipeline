@@ -8,7 +8,7 @@ import path from 'path';
 import { execFile } from 'child_process';
 import { promisify } from 'util';
 const execFileP = promisify(execFile);
-const HOOK_SECONDS = 90;   // only transcribe the first ~90s (the hook) — enough to identify a clip
+const HOOK_SECONDS = 240;  // ~4min — clips pack multiple ad reads back-to-back (temporarily raised to locate AD2/AD3)
 const CHUNK = 4 * 1024 * 1024;
 
 const KNOWN_SETTINGS = ['deepgram_api_key', 'dropbox_token', 'dropbox_app_key', 'dropbox_app_secret', 'dropbox_refresh_token'];

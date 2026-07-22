@@ -1,51 +1,88 @@
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Charm — Edit Priorities &amp; Scripts</title>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<title>Charm — Edit Plan</title><link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>*{margin:0;box-sizing:border-box;font-family:'Poppins',system-ui,sans-serif}
-:root{--ink:#1a1525;--muted:#6b6577;--line:#e7e4ee;--gtm:#8733ed;--bg:#faf9fc}
-body{background:var(--bg);color:var(--ink);line-height:1.5;padding:32px 20px 90px}
-.wrap{max-width:900px;margin:0 auto}
-h1{font-size:28px;font-weight:800;letter-spacing:-.5px}h1 span{color:var(--gtm)}
-.sub{color:var(--muted);font-size:14px;margin:6px 0 18px}
-.folders{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px}
-.folder{background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 14px;font-size:12.5px;text-decoration:none;color:var(--ink);font-weight:600}
+:root{--ink:#1a1525;--muted:#6b6577;--line:#e7e4ee;--gtm:#8733ed;--flex:#dc2626;--bg:#faf9fc}
+body{background:var(--bg);color:var(--ink);line-height:1.5;padding:30px 20px 90px}
+.wrap{max-width:880px;margin:0 auto}
+h1{font-size:26px;font-weight:800;letter-spacing:-.5px}h1 span{color:var(--gtm)}
+.sub{color:var(--muted);font-size:13.5px;margin:6px 0 16px}
+.folders{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:22px}
+.folder{background:#fff;border:1px solid var(--line);border-radius:10px;padding:9px 13px;font-size:12px;text-decoration:none;color:var(--ink);font-weight:600}
 .folder b{color:var(--gtm)} .folder span{color:var(--muted);font-weight:500;display:block;font-size:11px}
-.legend{font-size:12px;color:var(--muted);margin:0 0 22px}
-.item{background:#fff;border:1px solid var(--line);border-radius:14px;padding:20px 22px;margin-bottom:16px;border-left:5px solid var(--line)}
-.ihead{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:4px}
-.badge{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;padding:3px 9px;border-radius:99px;color:#fff}
-.icat{font-size:19px;font-weight:800}
-.iwhat{color:var(--muted);font-size:13px;margin-bottom:12px}
-.iwhat a,.folder a,.deliv a{color:var(--gtm)}
-.files{margin:8px 0 6px}
-.file,.ad-top{display:flex;gap:8px;align-items:baseline;font-size:12.5px;padding:4px 0}
-.file{border-bottom:1px dashed var(--line)} .file:last-child{border-bottom:none}
-.fname{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-weight:600;font-size:12px;color:var(--gtm);min-width:225px}
-.fnote{color:var(--muted)}
+.banner{background:linear-gradient(100deg,#8733ed,#a855f7);color:#fff;border-radius:14px;padding:16px 22px;margin-bottom:8px}
+.banner .bh{font-size:19px;font-weight:800}.banner .bs{font-size:13px;opacity:.9;margin-top:2px}
+.sec-h{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:26px 0 10px}
+.ad-card{background:#fff;border:1px solid var(--line);border-left:5px solid var(--flex);border-radius:14px;padding:18px 20px;margin-bottom:14px}
+.ad-h{display:flex;align-items:baseline;gap:10px}.ad-n{font-size:12px;font-weight:800;color:var(--flex);background:#fee2e2;padding:2px 8px;border-radius:6px}.ad-t{font-size:18px;font-weight:800}
+.ad-move{color:var(--muted);font-size:12.5px;margin:5px 0 8px}
+.item{background:#fff;border:1px solid var(--line);border-left:5px solid #0d9488;border-radius:14px;padding:18px 20px;margin-bottom:14px}
+.icat{font-size:19px;font-weight:800}.iwhat{color:var(--muted);font-size:12.5px;margin:2px 0 8px}
+.iwhat a,.folder a,.back-item a{color:var(--gtm)}
+.files{margin:6px 0}.files.locating .fname{color:#b45309}
+.file{display:flex;gap:8px;align-items:baseline;font-size:12.5px;padding:3px 0;border-bottom:1px dashed var(--line)}.file:last-child{border-bottom:none}
+.fname{font-family:ui-monospace,Menlo,monospace;font-weight:600;font-size:12px;color:var(--gtm);min-width:215px}.fnote{color:var(--muted)}
 .best{background:#e7f7ee;color:#127a3e;font-size:10px;font-weight:700;padding:1px 6px;border-radius:5px}
-.ad{border-top:1px solid var(--line);padding:10px 0} .ad:first-of-type{border-top:none} .ad-name{font-weight:600}
-.scr{margin:8px 0 2px} .scr summary{cursor:pointer;font-size:12px;font-weight:700;color:var(--gtm);padding:4px 0}
-.scr-body{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:14px 16px;font-size:13px;color:#2a2536;white-space:pre-line;margin-top:6px;max-height:420px;overflow:auto}
-.deliv{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:14px 16px;font-size:13px}
-.deliv-h{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:6px}
-.deliv ul,.specs ul{margin:8px 0 0 18px} .deliv li,.specs li{margin:3px 0}
-.specs{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px 22px;margin:8px 0 16px}
-.specs-h{font-weight:800;font-size:15px;margin-bottom:4px}
-.excl{background:#f4f2f8;border-radius:12px;padding:16px 20px;font-size:13px;color:var(--muted)}
-.excl b{color:var(--ink)} .excl code{font-family:ui-monospace,monospace;font-size:11.5px;background:#fff;padding:1px 5px;border-radius:4px}</style></head>
-<body><div class="wrap">
-<h1>Charm — <span>Edit Priorities &amp; Scripts</span></h1>
-<div class="sub">Everything to cut, in priority order, with the exact source files and the <b>full script</b> for each (click to expand). Two-camera shoots — cut from A-cam primary, B-cam for coverage.</div>
-<div class="folders">
-  <a class="folder" href="https://www.dropbox.com/scl/fo/tydw3clov9ywrunxvfr14/AJNd17iKyNukS-wm0o0oyqw/07.01.26?rlkey=ku9m5uwm9rhwlg8173s4ttp9k&dl=0" target="_blank"><b>📁 Folder A</b><span>CS-Flex VSL · GTM VSL · GTM ads (A023_…)</span></a>
-  <a class="folder" href="https://www.dropbox.com/scl/fo/cie05todb9cup342bndwz/AGTFYpPXQ1ono4rhffpBMUw?rlkey=702xu0dvgvak2b4y9w8l6q7wp&dl=0" target="_blank"><b>📁 Folder B</b><span>Consulting · CS-Engine VSL · GTM ad (A034_… / B021_…)</span></a>
-</div>
-<div class="legend">Priority: 🔴 CS-Flex → 🔴 CS-Engine (both VSLs, do first) → 🟣 GTM VSL → 🟢 Consulting → 🟡 GTM ads → 🎬 reels from the GTM VSL.</div>
-<div class="item" style="border-left-color:#dc2626">
-  <div class="ihead"><span class="badge" style="background:#dc2626">🔴 Priority 1 — do first</span><span class="icat">CS-Flex VSL</span></div>
-  <div class="iwhat">Flex CS for drops / launches / seasonal spikes, pay-per-resolution. Several clean takes captured.</div>
-  <div class="files"><div class="file"><span class="fname">A023_06290032_C003.mov</span><span class="fnote">full take + client logos &nbsp;<span class="best">BEST</span></span></div><div class="file"><span class="fname">A023_06290028_C001.mov</span><span class="fnote">clean full take (no logos)</span></div><div class="file"><span class="fname">A023_06290052_C004.mov</span><span class="fnote">extended proof / logo section</span></div><div class="file"><span class="fname">A023_06290029_C002.mov</span><span class="fnote">alt take (flub at open — pickups only)</span></div></div><details class="scr"><summary>▸ Full CS-Flex VSL script</summary><div class="scr-body">Part 1: The Hook (0:00 – 2:30)
+.scr-body{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:13px 15px;font-size:13px;color:#2a2536;white-space:pre-line;margin-top:6px;max-height:400px;overflow:auto}
+.scr-h{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:6px}
+.scr{margin-top:6px}.scr summary{cursor:pointer;font-size:12px;font-weight:700;color:var(--gtm);padding:3px 0}
+.specs{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px 20px;margin:6px 0 4px;font-size:13px;color:#2a2536;white-space:pre-line}
+.specs-h{font-weight:800;font-size:14px;margin-bottom:4px}.specs ul{margin:6px 0 0 18px;white-space:normal}.specs li{margin:2px 0}
+.back-item{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 16px;margin-bottom:10px;opacity:.92}
+.back-cat{font-size:14px;font-weight:700}
+.excl{background:#f4f2f8;border-radius:12px;padding:14px 18px;font-size:12.5px;color:var(--muted);margin-top:16px}
+.excl b{color:var(--ink)}.excl code{font-family:ui-monospace,monospace;font-size:11px;background:#fff;padding:1px 5px;border-radius:4px}</style></head><body><div class="wrap">
+<h1>Charm — <span>Edit Plan</span></h1>
+<div class="sub">Priority order with source files + full scripts (click to expand). Two-camera shoots — cut A-cam primary, B-cam for coverage.</div>
+<div class="folders"><a class="folder" href="https://www.dropbox.com/scl/fo/tydw3clov9ywrunxvfr14/AJNd17iKyNukS-wm0o0oyqw/07.01.26?rlkey=ku9m5uwm9rhwlg8173s4ttp9k&dl=0" target="_blank"><b>📁 Folder A</b><span>GTM ads · GTM VSL · CS-Flex (A023_…)</span></a><a class="folder" href="https://www.dropbox.com/scl/fo/cie05todb9cup342bndwz/AGTFYpPXQ1ono4rhffpBMUw?rlkey=702xu0dvgvak2b4y9w8l6q7wp&dl=0" target="_blank"><b>📁 Folder B</b><span>Consulting · CS-Engine · GTM ad (A034_… / B021_…)</span></a></div>
+
+<div class="banner"><div class="bh">🎯 This week — 3 GTM ads, due Monday, Jul 27</div><div class="bs">These three ship first. Each is one clean structural move → book-a-call CTA.</div></div>
+<div class="ad-card">
+  <div class="ad-h"><span class="ad-n">AD 1</span><span class="ad-t">The Single-Breath What-If</span></div>
+  <div class="ad-move">Entire offer packed into one what-if (deliverables + outcome + zero effort) → reveal → CTA. ~50 sec.</div>
+  <div class="files"><div class="file"><span class="fname">A034_07101156_C005.mov</span><span class="fnote">Folder B · A-cam</span></div><div class="file"><span class="fname">B021_06231638_C006.mov</span><span class="fnote">Folder B · B-cam</span></div></div>
+  <div class="scr-body"><div class="scr-h">Script</div>What if we came into your business and sent hundreds of thousands of cold emails a month completely done for you — the market research, the lead lists, the copywriting, the sending infrastructure, the reply handling — booking qualified sales calls straight onto your calendar without you having to lift a finger?
+
+That&#x27;s exactly what we do with our all-in-one outbound engine.
+
+You&#x27;re seeing this video for a reason. So if you&#x27;re ready to get more qualified calls and clients for your business, click the link below to fill out the form and see if we&#x27;re a good fit. If we are, I&#x27;ll show you exactly how we&#x27;d run this in your business. And if we don&#x27;t think we can help you grow, we&#x27;ll let you know — and we won&#x27;t take your money.
+
+Click the link below and let&#x27;s fill your calendar.</div><details class="scr"><summary>▸ Optional beats (pending Chris sign-off)</summary><div class="scr-body">Timeframe inside the what-if: &quot;…without you having to lift a finger, in the first 30 days?&quot; (VSL says first meetings land weeks 3–5)
+
+Risk reversal after the what-if: &quot;And if it doesn&#x27;t work, you don&#x27;t pay a penny.&quot;</div></details></div><div class="ad-card">
+  <div class="ad-h"><span class="ad-n">AD 2</span><span class="ad-t">Label Them With a Problem</span></div>
+  <div class="ad-move">Name one precise situation so the viewer self-selects, resolve that one thing, CTA. ~40 sec.</div>
+  <div class="files locating"><div class="file"><span class="fname">⏳ file being located</span><span class="fnote">later read in the 06/29 clips — transcribing deeper to pin it</span></div></div>
+  <div class="scr-body"><div class="scr-h">Script</div>So you know you should be doing outbound in your business… but you just haven&#x27;t been able to bring yourself to set it all up.
+
+The domains, the inboxes, the warmup, the lead lists, the copy — it&#x27;s a full-time job, and one wrong move sends everything you write straight to spam. So it sits on the someday list while your competitors show up in your prospects&#x27; inboxes every single morning.
+
+That&#x27;s exactly why we exist. We build and run the entire outbound machine for you. You don&#x27;t touch any of it — you just take the calls it books.
+
+Click the link below and we&#x27;ll show you what we&#x27;d build for your business.</div><details class="scr"><summary>▸ Alt label completions (swap first line, keep the rest)</summary><div class="scr-body">&quot;…but you just don&#x27;t have the time to actually run it.&quot;
+
+&quot;…but you just got burned the last time you paid someone to do it.&quot; (resolution line becomes: &quot;That&#x27;s exactly who we built this for.&quot;)</div></details></div><div class="ad-card">
+  <div class="ad-h"><span class="ad-n">AD 3</span><span class="ad-t">An Ad In Every Inbox</span></div>
+  <div class="ad-move">The inbox-vs-social angle → placement → proof → CTA.</div>
+  <div class="files locating"><div class="file"><span class="fname">⏳ file being located</span><span class="fnote">later read in the 06/29 clips — transcribing deeper to pin it</span></div></div>
+  <div class="scr-body"><div class="scr-h">Script</div>Your prospect might open Instagram today. Might.
+
+But there&#x27;s one place they&#x27;re forced to check every single day. Usually 15 times.
+
+We built a system that puts your best ad in that exact spot. Not blasted to a lookalike audience and prayed over. Placed directly in front of the exact decision makers you want as clients, every single day.
+
+The brands using it are booking meetings with companies like Costco, North Face, and Google while everyone else fights over the same $40 CPMs.
+
+Click below to see how the system works.</div></div>
+<div class="specs"><div class="specs-h">📐 Ad specs</div>~30–50 sec talking-head → book-a-call funnel. Each ad = one structural move. No credentialing or mechanism dumps (that's the VSL's job).
+<ul><li><b>Aspect:</b> 9:16 vertical master (add 1:1 / 4:5 if easy)</li><li><b>Hook:</b> strongest line + visual in the first 3 seconds</li><li><b>Captions:</b> burned-in, sound-off friendly</li><li><b>End:</b> clear CTA + Charm brand card</li></ul></div>
+
+<div class="sec-h">⭐ Main priority — the big lift</div>
+<div class="item">
+  <div class="icat">CS-Flex VSL</div>
+  <div class="iwhat">Flex CS for drops / launches / seasonal spikes, pay-per-resolution. Several clean takes.</div>
+  <div class="files"><div class="file"><span class="fname">A023_06290032_C003.mov</span><span class="fnote">full take + client logos &nbsp;<span class=best>BEST</span></span></div><div class="file"><span class="fname">A023_06290028_C001.mov</span><span class="fnote">clean full take (no logos)</span></div><div class="file"><span class="fname">A023_06290052_C004.mov</span><span class="fnote">extended proof / logo section</span></div><div class="file"><span class="fname">A023_06290029_C002.mov</span><span class="fnote">alt take (flub at open)</span></div></div>
+  <details class="scr"><summary>▸ Full CS-Flex VSL script</summary><div class="scr-body">Part 1: The Hook (0:00 – 2:30)
 If you&#x27;ve got a drop coming, a launch on the calendar, or a seasonal spike about to hit — I will give you a fully trained, on-brand customer service team that handles every ticket across email, chat, and social, and you only pay when they actually solve one.
 Real human agents. Live in 48 hours. Sounds like your brand on day one.
 Just like we&#x27;ve done for Friday Beers, Channel 5 News with Andrew Callaghan, Pizzafy by Airrack, Peter Diamandis at XPRIZE, and Woo More Play — handling drops, launches, and seasonal surges from a trickle to thousands of tickets overnight.
@@ -152,10 +189,11 @@ On the call, we&#x27;ll audit your current setup, map your volume patterns, walk
 If it makes sense to work together, I&#x27;ll walk you through the rollout. If not — no pressure. You&#x27;ll leave with a full audit of your CS stack and tactical advice on what we&#x27;d do if we were running your support.
 If I&#x27;m wrong, you lose 30 minutes.
 If I&#x27;m right, you&#x27;ll join brands like Friday Beers, Channel 5, Pizzafy, XPRIZE, and Woo More Play who stopped thinking about customer service and started focusing on the thing they actually built their business to do.
-Hit the button. Pick a time. Let&#x27;s talk.</div></details></div><div class="item" style="border-left-color:#e0218a">
-  <div class="ihead"><span class="badge" style="background:#e0218a">🔴 Priority 2</span><span class="icat">CS-Engine VSL</span></div>
-  <div class="iwhat">Turn customer service from a cost center into a revenue engine. Entirely separate script from CS-Flex.</div>
-  <div class="files"><div class="file"><span class="fname">A034_07101121_C004.mov</span><span class="fnote">Folder B · A-cam</span></div><div class="file"><span class="fname">B021_06231602_C005.mov</span><span class="fnote">Folder B · B-cam</span></div></div><details class="scr"><summary>▸ Full CS-Engine VSL script</summary><div class="scr-body">PART 1 — THE HOOK (0:00 – 2:30)
+Hit the button. Pick a time. Let&#x27;s talk.</div></details>
+</div>
+
+<div class="sec-h">📎 Backfill / reference — after the above</div>
+<div class="back-item"><div class="back-cat">CS-Engine VSL</div><div class="files"><div class="file"><span class="fname">A034_07101121_C004.mov</span><span class="fnote">Folder B · A-cam</span></div><div class="file"><span class="fname">B021_06231602_C005.mov</span><span class="fnote">Folder B · B-cam</span></div></div><details class="scr"><summary>▸ Full CS-Engine script</summary><div class="scr-body">PART 1 — THE HOOK (0:00 – 2:30)
 Your customer service team is a cost center. Whether you sell software, physical products, or services — we turn it into an engine that costs a fraction of what you&#x27;re paying today and generates revenue.
 Not &quot;protects&quot; revenue. Generates it. Live in 30 days. Complete in 90.
 Here&#x27;s the idea underneath everything I&#x27;m about to say: every ticket in your queue right now is a customer who already gave you money, talking to you in this moment. That is the warmest traffic your company will ever get — and you&#x27;ve been staffing it like a cost problem. Everyone has. That&#x27;s the mistake.
@@ -288,10 +326,7 @@ Pepsi, New Balance, Jamie Lee Curtis, Mike Tyson — your words in Day.ai calls,
 &quot;Near a third of previous cost&quot; on hybrid builds — from your Suspension Direct pitch; that was a projection. Confirm a delivered case, or soften.
 &quot;Costs a fraction of what you&#x27;re paying today&quot; (unhedged) + revenue-generation framing — per your direction 2026-07-09. Revenue claims kept directional; Best of Hawaii is the anchor proof.
 &quot;We&#x27;ve never missed a 30-day setup window&quot; — directional fallback; contractual &quot;or we run it free until live&quot; still pending your sign-off.
-Yes Theory / Seek Discomfort — former client, deliberately excluded.</div></details></div><div class="item" style="border-left-color:#8733ed">
-  <div class="ihead"><span class="badge" style="background:#8733ed">🟣 Priority 3</span><span class="icat">GTM VSL</span></div>
-  <div class="iwhat">Core GTM offer VSL — every decision maker in 90 days ("script two"). <b>Already has a first edit</b> — see the reel deliverables below.</div>
-  <div class="files"><div class="file"><span class="fname">A023_06290104_C005.mov</span><span class="fnote">Folder A — raw</span></div><div class="file"><span class="fname">&amp;#127916; Finished edit</span><span class="fnote"><a href="https://drive.google.com/file/d/1RJwJWWwMkxOszztUehOg_jQuq8_IXnfc/view" target="_blank">open the edited GTM VSL &#8599;</a></span></div></div><details class="scr"><summary>▸ Full GTM VSL script</summary><div class="scr-body">PART 1 — THE HOOK (0:00 – 2:30)
+Yes Theory / Seek Discomfort — former client, deliberately excluded.</div></details></div><div class="back-item"><div class="back-cat">GTM VSL (raw + finished edit)</div><div class="files"><div class="file"><span class="fname">A023_06290104_C005.mov</span><span class="fnote">Folder A · raw</span></div><div class="file"><span class="fname">🎬 finished edit</span><span class="fnote">see reels below</span></div></div><details class="scr"><summary>▸ Full GTM VSL script</summary><div class="scr-body">PART 1 — THE HOOK (0:00 – 2:30)
 &quot;If you run a B2B service business, we&#x27;ll put your offer in front of every decision maker in your market within 90 days, through a fully built outbound machine that runs cold email and LinkedIn at the same time.
 We&#x27;ve done it for dozens of service businesses, agencies, SaaS companies, consultants, and B2B operators across the US, UK, Australia, and the Netherlands. I believe in these systems so much I built and grew my own SaaS using them, just to prove they work.
 This way, you stop wondering where your next deal is coming from, your calendar fills with qualified calls from buyers who already know who you are by the time they reply, and you finally have a predictable, top-of-funnel pipeline that doesn&#x27;t rely on referrals, paid ads, or you personally posting on LinkedIn five times a week.
@@ -406,27 +441,9 @@ On the call, we&#x27;ll look at your current offer, your current outbound (or la
 If it makes sense, we move forward. If not, no hard feelings — you&#x27;ll still walk away with a clear breakdown of what&#x27;s broken in your current outbound and exactly what we&#x27;d do to fix it if we were in your shoes.
 If I&#x27;m wrong, you lose 30 minutes of your day.
 If I&#x27;m right? You&#x27;ll join the 200+ service businesses we&#x27;ve built predictable, scalable outbound machines for — and you&#x27;ll never have another month where you wonder where your next client is coming from.
-Hit the button below this video, pick a time, and let&#x27;s talk.</div></details></div><div class="item" style="border-left-color:#2563eb">
-  <div class="ihead"><span class="badge" style="background:#2563eb">🟢 Priority 4</span><span class="icat">Consulting</span></div>
-  <div class="iwhat">One-on-one consulting pitch (as recorded — no separate long-form script on the board).</div>
-  <div class="files"><div class="file"><span class="fname">A034_07101016_C001.mov</span><span class="fnote">Folder B · A-cam</span></div><div class="file"><span class="fname">B021_06231458_C002.mov</span><span class="fnote">Folder B · B-cam</span></div></div><details class="scr"><summary>▸ Script (as recorded)</summary><div class="scr-body">I&#x27;ll save you the marketing creative and cut straight to the chase. I work one-on-one with a small group of founders each quarter to get them from where they are to $1M.</div></details></div><div class="item" style="border-left-color:#c9a227">
-  <div class="ihead"><span class="badge" style="background:#c9a227">🟡 Priority 5</span><span class="icat">GTM Ads (5)</span></div>
-  <div class="iwhat">Short-form direct-to-camera ads. Quick turns — can run in parallel with the VSLs. Specs below.</div>
-  <div class="ad"><div class="ad-top"><span class="fname">A023_06290152_C007.mov</span> — <span class="ad-name">&ldquo;Hired an agency&rdquo; (Burned Before)</span></div><details class="scr"><summary>▸ Script</summary><div class="scr-body">&quot;You&#x27;ve probably hired an agency before. They sent a bunch of emails, booked a few garbage meetings, and then blamed your offer when it didn&#x27;t work. That&#x27;s not strategy that&#x27;s hoping. We do it differently. We test creative angles fast, find what resonates, and only scale what&#x27;s actually working. If you want outbound that&#x27;s built on thinking, not just sending, click the link and book a call.&quot;
+Hit the button below this video, pick a time, and let&#x27;s talk.</div></details></div><div class="back-item"><div class="back-cat">Consulting</div><div class="files"><div class="file"><span class="fname">A034_07101016_C001.mov</span><span class="fnote">Folder B · A-cam</span></div><div class="file"><span class="fname">B021_06231458_C002.mov</span><span class="fnote">Folder B · B-cam</span></div></div><details class="scr"><summary>▸ Script (as recorded)</summary><div class="scr-body">I&#x27;ll save you the marketing creative and cut straight to the chase. I work one-on-one with a small group of founders each quarter to get them from where they are to $1M.</div></details></div><div class="back-item"><div class="back-cat">GTM ad — &quot;Hired an agency&quot; / Burned Before</div><div class="files"><div class="file"><span class="fname">A023_06290152_C007.mov</span><span class="fnote">Folder A</span></div></div><details class="scr"><summary>▸ Script</summary><div class="scr-body">&quot;You&#x27;ve probably hired an agency before. They sent a bunch of emails, booked a few garbage meetings, and then blamed your offer when it didn&#x27;t work. That&#x27;s not strategy that&#x27;s hoping. We do it differently. We test creative angles fast, find what resonates, and only scale what&#x27;s actually working. If you want outbound that&#x27;s built on thinking, not just sending, click the link and book a call.&quot;
 
-See you there.&quot;</div></details></div><div class="ad"><div class="ad-top"><span class="fname">A023_06290152_C007.mov</span> — <span class="ad-name">&ldquo;Not getting enough meetings&rdquo; (2nd read on same clip)</span></div><details class="scr"><summary>▸ Script</summary><div class="scr-body">Are you a B2B company with a proven offer who just isn&#x27;t getting enough at-bats? Let me show you the math most agencies won&#x27;t put in front of you, because it exposes what they&#x27;re actually selling you.
-
-Most agencies sell you sends. We sell you targeting. Here&#x27;s the difference. 
-
-We&#x27;re running hundreds of active campaigns right now, and that gives us live signal on who&#x27;s actually opening, replying, and buying in your market this week, not last quarter. So when we send tens of thousands of touches a month on your behalf, they&#x27;re not sprayed at a list. They&#x27;re aimed.
-
-That&#x27;s why this consistently books twenty to sixty qualified calls a month on your calendar, and why our clients close twenty to twenty-five percent of them. Run it out: forty calls, close a quarter, ten new customers a month, on repeat.
-
-A cheap agency runs a tool and hopes. We engineer the targeting around real-time data nobody else has access to. Same offer, completely different output.
-
-And if you&#x27;re not satisfied after ninety days, we rebuild the entire system on our dime. We only win when you win.
-
-Want the full breakdown? I made a video you can watch with no opt-in. Click Learn More to see it. Hope to see you there.</div></details></div><div class="ad"><div class="ad-top"><span class="fname">A023_06290158_C008.mov</span> — <span class="ad-name">&ldquo;I own the whole system&rdquo; / Infrastructure</span></div><details class="scr"><summary>▸ Script</summary><div class="scr-body">Most outbound fails before the first email goes out, because the infrastructure underneath it is broken. I&#x27;ll build you the version that actually works. Let me show you how.
+See you there.&quot;</div></details></div><div class="back-item"><div class="back-cat">GTM ad — &quot;I own the whole system&quot; / Infrastructure</div><div class="files"><div class="file"><span class="fname">A023_06290158_C008.mov</span><span class="fnote">Folder A</span></div></div><details class="scr"><summary>▸ Script</summary><div class="scr-body">Most outbound fails before the first email goes out, because the infrastructure underneath it is broken. I&#x27;ll build you the version that actually works. Let me show you how.
 
 You pay me once, and for the next ninety days I own the whole system end to end. We buy and configure the domains and inboxes so you can send at scale without ever tripping spam filters. We build you the biggest clean list we can pull, matched tightly to your ICP. We design the campaign strategy around what&#x27;s actually converting right now, because we&#x27;ve got hundreds of active campaigns telling us what works this week, not last year.
 
@@ -436,36 +453,7 @@ Your job is simple. Fill out a form now, and take the calls we tee up for you.
 
 If you&#x27;re selling into a large market and you want outbound that&#x27;s engineered instead of guessed, hit &quot;Learn More&quot; below. 
 
-There&#x27;s a short video on the next page where I go deeper on the offer. If you think it fits, book a call with me directly and we&#x27;ll see if it&#x27;s right for you. Talk soon.</div></details></div><div class="ad"><div class="ad-top"><span class="fname">A023_06290205_C009.mov</span> — <span class="ad-name">&ldquo;Every decision maker in 90 days&rdquo; (Costco / North Face / Google)</span></div><details class="scr"><summary>▸ Script</summary><div class="scr-body">Are you a B2B service business with a proven offer, but your pipeline still runs on referrals and luck? In the last two weeks, we booked calls with Costco, Northface, and Google. We built one client $30 million in pipeline in three months. And we even helped one of our own people become the world champion at Clay. Same system, same processes every time. Here&#x27;s exactly how we do it. One, we dig up every decision maker in your entire market and pull their names, emails, LinkedIn, and phone numbers. Two, we build a full machine across cold email, LinkedIn, and warm dialing. Then we staff and run it for you. Three, every month, we send tens of thousands of emails and DMs on your behalf. And the second someone shows interest, we get them on the phone. So by the time you talk to a prospect, they already know your name. You touch none of it. So instead of an SDR who burns eight grand a month and books nothing or a cheap agency that blasts garbage and torches your reputation, you get a whole team on your account for less than that one hire. And look, we don&#x27;t just run this for our clients. We trusted these exact systems enough to build our own SaaS in an industry we don&#x27;t even work in and take it past 100 paying users in just two months. We bet on this stuff with our own name all the time. And if we don&#x27;t deliver in 90 days, we fix the whole thing on our dime. You already knew that. I broke it all down in a short video. Click the link below and check it out.</div></details></div><div class="ad"><div class="ad-top"><span class="fname">A034_07101156_C005.mov</span> — <span class="ad-name">&ldquo;All-in-one outbound engine&rdquo; (+B-cam B021_…C006)</span></div><details class="scr"><summary>▸ Script</summary><div class="scr-body">What if we came into your business and sent hundreds of thousands of cold emails a month completely done for you — the market research, the lead lists, the copywriting, the sending infrastructure, the reply handling — booking qualified sales calls straight onto your calendar without you having to lift a finger?
-That&#x27;s exactly what we do with our all-in-one outbound engine.
-You&#x27;re seeing this video for a reason. So if you&#x27;re ready to get more qualified calls and clients for your business, click the link below to fill out the form and see if we&#x27;re a good fit. If we are, I&#x27;ll show you exactly how we&#x27;d run this in your business. And if we don&#x27;t think we can help you grow, we&#x27;ll let you know — and we won&#x27;t take your money.
-Click the link below and let&#x27;s fill your calendar.</div></details></div></div><div class="item" style="border-left-color:#0d9488">
-  <div class="ihead"><span class="badge" style="background:#0d9488">🎬 From the finished VSL</span><span class="icat">Reels cut from the GTM VSL</span></div>
-  <div class="iwhat">Pull short-form ads/reels out of the <b>already-edited GTM VSL</b> (<a href="https://drive.google.com/file/d/1RJwJWWwMkxOszztUehOg_jQuq8_IXnfc/view" target="_blank">open it &#8599;</a>). No new footage — these are cut-downs.</div>
-  <div class="deliv">
-    <div class="deliv-h">Deliverable</div>
-    <b>3–5 vertical reels</b>, each built around one strong moment from the VSL. Suggested hooks to pull:
-    <ul>
-      <li>&ldquo;In the last two weeks we booked calls with <b>Costco, North Face, and Google</b>.&rdquo;</li>
-      <li>&ldquo;We built one client <b>$30M in pipeline in three months</b>.&rdquo;</li>
-      <li>&ldquo;Every decision maker in your market — <b>in 90 days</b>, done for you.&rdquo;</li>
-      <li>&ldquo;I believe in this so much I <b>built my own SaaS</b> using it, just to prove it works.&rdquo;</li>
-      <li>&ldquo;Stop wondering where your <b>next deal</b> is coming from.&rdquo;</li>
-    </ul>
-  </div>
-</div>
-<div class="specs">
-  <div class="specs-h">📐 Ad / reel specs (applies to all short-form above)</div>
-  <ul>
-    <li><b>Aspect:</b> 9:16 vertical master. Add 1:1 / 4:5 versions if easy.</li>
-    <li><b>Length:</b> ads 15–45s · reels 15–30s.</li>
-    <li><b>Hook:</b> strongest line + visual in the first <b>3 seconds</b>.</li>
-    <li><b>Captions:</b> burned-in, sound-off friendly.</li>
-    <li><b>End:</b> clear CTA + Charm brand card ("book a call" / "link below").</li>
-    <li><b>Deliver:</b> one master per concept; flag if you need copy for on-screen text.</li>
-  </ul>
-</div>
-<div class="excl"><b>Not going to the editor / skip:</b><br>
-  • <b>Resurrection</b> (re-engagement — "if you're getting this, we've talked in the last 7 years"): <code>A034_…C002</code>, <code>A034_…C003</code>, <code>B021_…C003</code>, <code>B021_…C004</code>.<br>
-  • <b>Slate / test:</b> <code>B021_06231455_C001.mov</code> and <code>A023_06290125_C006.mov</code>.</div>
+There&#x27;s a short video on the next page where I go deeper on the offer. If you think it fits, book a call with me directly and we&#x27;ll see if it&#x27;s right for you. Talk soon.</div></details></div><div class="back-item"><div class="back-cat">GTM ad — &quot;Every decision maker in 90 days&quot;</div><div class="files"><div class="file"><span class="fname">A023_06290205_C009.mov</span><span class="fnote">Folder A</span></div></div><details class="scr"><summary>▸ Script</summary><div class="scr-body">Are you a B2B service business with a proven offer, but your pipeline still runs on referrals and luck? In the last two weeks, we booked calls with Costco, Northface, and Google. We built one client $30 million in pipeline in three months. And we even helped one of our own people become the world champion at Clay. Same system, same processes every time. Here&#x27;s exactly how we do it. One, we dig up every decision maker in your entire market and pull their names, emails, LinkedIn, and phone numbers. Two, we build a full machine across cold email, LinkedIn, and warm dialing. Then we staff and run it for you. Three, every month, we send tens of thousands of emails and DMs on your behalf. And the second someone shows interest, we get them on the phone. So by the time you talk to a prospect, they already know your name. You touch none of it. So instead of an SDR who burns eight grand a month and books nothing or a cheap agency that blasts garbage and torches your reputation, you get a whole team on your account for less than that one hire. And look, we don&#x27;t just run this for our clients. We trusted these exact systems enough to build our own SaaS in an industry we don&#x27;t even work in and take it past 100 paying users in just two months. We bet on this stuff with our own name all the time. And if we don&#x27;t deliver in 90 days, we fix the whole thing on our dime. You already knew that. I broke it all down in a short video. Click the link below and check it out.</div></details></div><div class="back-item"><div class="back-cat">🎬 Reels from the finished GTM VSL</div><div class="iwhat">3–5 vertical reels cut from the <a href="https://drive.google.com/file/d/1RJwJWWwMkxOszztUehOg_jQuq8_IXnfc/view" target="_blank">edited GTM VSL ↗</a>. Suggested hooks: Costco/North Face/Google in 2 weeks · $30M pipeline in 3 months · every decision maker in 90 days · "I built my own SaaS to prove it" · "stop wondering where your next deal comes from."</div></div>
+
+<div class="excl"><b>Not going to the editor / skip:</b> Resurrection (<code>A034_…C002/C003</code>, <code>B021_…C003/C004</code>) · slate/test (<code>B021_…C001</code>, <code>A023_…C006</code>).</div>
 </div></body></html>
