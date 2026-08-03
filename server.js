@@ -572,6 +572,8 @@ async function checkEditSlas() {
 }
 
 // ---- weekly Monday digest (the low-noise nag) ----
+// Paused unless WEEKLY_DIGEST is explicitly turned on; manual test endpoint is unaffected.
+const DIGEST_ENABLED = /^(1|true|on|yes)$/i.test(process.env.WEEKLY_DIGEST || '');
 const CTYPE_LABEL_SRV = { ad: 'Ad', vsl: 'VSL', video_organic: 'Organic video', linkedin_post: 'LinkedIn post', lead_magnet: 'Lead magnet', newsletter_issue: 'Newsletter', partner_asset: 'Partner asset' };
 function mondayISO(d) {
   const x = new Date(d); const off = (x.getUTCDay() + 6) % 7; // 0 = Monday
@@ -615,16 +617,22 @@ initDb()
     setInterval(checkEditSlas, 15 * 60 * 1000); // every 15 min
     setTimeout(checkEditSlas, 30 * 1000);       // and shortly after boot
     // Weekly digest: Monday 8am Phoenix (UTC-7, no DST), deduped per week via meta.
-    setInterval(async () => {
-      try {
-        const phx = new Date(Date.now() - 7 * 3600000);
-        if (phx.getUTCDay() !== 1 || phx.getUTCHours() !== 8) return;
-        const wk = mondayISO(new Date());
-        const last = (await pool.query(`SELECT v FROM meta WHERE k='digest_week'`)).rows[0];
-        if (last && last.v === wk) return;
-        await weeklyDigest();
-        await pool.query(`INSERT INTO meta (k,v) VALUES ('digest_week',$1) ON CONFLICT (k) DO UPDATE SET v=$1`, [wk]);
-      } catch (e) { console.warn('digest cron failed:', e.message); }
-    }, 10 * 60 * 1000);
+    // OFF by default (paused Aug 3 2026 until the digest content is tightened up).
+    // Re-enable with env WEEKLY_DIGEST=on. /api/digest/test still works either way.
+    if (DIGEST_ENABLED) {
+      setInterval(async () => {
+        try {
+          const phx = new Date(Date.now() - 7 * 3600000);
+          if (phx.getUTCDay() !== 1 || phx.getUTCHours() !== 8) return;
+          const wk = mondayISO(new Date());
+          const last = (await pool.query(`SELECT v FROM meta WHERE k='digest_week'`)).rows[0];
+          if (last && last.v === wk) return;
+          await weeklyDigest();
+          await pool.query(`INSERT INTO meta (k,v) VALUES ('digest_week',$1) ON CONFLICT (k) DO UPDATE SET v=$1`, [wk]);
+        } catch (e) { console.warn('digest cron failed:', e.message); }
+      }, 10 * 60 * 1000);
+    } else {
+      console.log('Weekly Monday digest is PAUSED (set WEEKLY_DIGEST=on to resume).');
+    }
   })
   .catch((e) => { console.error('DB init failed:', e); process.exit(1); });
